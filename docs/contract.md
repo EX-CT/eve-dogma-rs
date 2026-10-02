@@ -104,3 +104,9 @@ Conventions matching Pyfa (deliberate): volley is spooled; local nosferatu is ca
   is factored, local cap-using repairers run only as far as peak recharge + injected cap allow). `capacitor.use_gj_s`
   / `injected_gj_s` now include incoming drains/fills, and capacitor boosters' average cycle always includes reload
   (Pyfa `forceReload`). Additive / semantic refinement.
+- v1.5 (2026-10-03): `projected[kind=fighter]` (`fighter`: FighterReq; web / warp disruption / neut / ECM abilities,
+  Pyfa default abilities unless `abilities` given; projected fits also project their fighters).
+  `targeting.jam_chance_percent` (Pyfa jamChance: ECM modules, drones, bursts, fighters vs strongest sensor type).
+  `offense.drones[]` gains optimal_m, falloff_m, tracking, max_velocity, signature_radius; `offense.fighters[]` gains
+  max_velocity, signature_radius; local fighter MWD / afterburner / evasive maneuvers abilities are applied.
+  Booster side effects (`boosters[].side_effects`) oracle-verified. Additive.

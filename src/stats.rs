@@ -384,7 +384,9 @@ impl<'a> Fit<'a> {
             let dps = v.scale(1000.0 / cyc);
             d_vol.add(&v);
             d_dps.add(&dps);
-            drone_out.push(json!({"drone_index": self.items[i].req_index, "type_id": self.items[i].type_id, "name": ds.types[&self.items[i].type_id].name, "count": n, "volley": v.json(), "dps": dps.json()}));
+            drone_out.push(json!({"drone_index": self.items[i].req_index, "type_id": self.items[i].type_id, "name": ds.types[&self.items[i].type_id].name, "count": n, "volley": v.json(), "dps": dps.json(),
+                "optimal_m": g(i, "maxRange"), "falloff_m": g(i, "falloff"), "tracking": g(i, "trackingSpeed"),
+                "max_velocity": g(i, "maxVelocity"), "signature_radius": g(i, "signatureRadius")}));
         }
         let mut f_vol = Dmg::default();
         let mut f_dps = Dmg::default();
@@ -424,7 +426,8 @@ impl<'a> Fit<'a> {
             if fv.total() > 0.0 {
                 f_vol.add(&fv);
                 f_dps.add(&fd);
-                fighter_out.push(json!({"fighter_index": self.items[i].req_index, "type_id": self.items[i].type_id, "name": ds.types[&self.items[i].type_id].name, "squadron_size": n, "volley": fv.json(), "dps": fd.json()}));
+                fighter_out.push(json!({"fighter_index": self.items[i].req_index, "type_id": self.items[i].type_id, "name": ds.types[&self.items[i].type_id].name, "squadron_size": n, "volley": fv.json(), "dps": fd.json(),
+                    "max_velocity": g(i, "maxVelocity"), "signature_radius": g(i, "signatureRadius")}));
             }
         }
         let mut t_vol = w_vol;
@@ -720,6 +723,40 @@ impl<'a> Fit<'a> {
                 best = (n, v);
             }
         }
+        // ECM jam chance (Pyfa Fit.jamChance): strengths vs the strongest sensor type (ties -> multispectral -> 0)
+        let jam = {
+            let mut max_s = -1.0f64;
+            let mut ty: Option<&str> = None;
+            for t in ["Magnetometric", "Ladar", "Radar", "Gravimetric"] {
+                let v = g(ship, &format!("scan{t}Strength"));
+                if v > max_s {
+                    max_s = v;
+                    ty = Some(t);
+                } else if v == max_s {
+                    ty = None;
+                }
+            }
+            let mut retain = 1.0f64;
+            let mut any = false;
+            for ps in &self.proj_special {
+                if let crate::engine::ProjSpecial::Ecm { item, fighter, factor, resist } = *ps {
+                    any = true;
+                    let Some(t) = ty else { continue };
+                    let attr = if fighter { format!("fighterAbilityECMStrength{t}") } else { format!("scan{t}StrengthBonus") };
+                    let mut st = g(item, &attr) * factor;
+                    if resist != 0 {
+                        let r = self.get(ship, resist);
+                        if r != 0.0 {
+                            st *= r;
+                        }
+                    }
+                    if max_s > 0.0 {
+                        retain *= 1.0 - (st / max_s).min(1.0);
+                    }
+                }
+            }
+            if any { Some((1.0 - retain) * 100.0) } else { None }
+        };
         let scan_res = g(ship, "scanResolution");
         let lt = |s: f64| lock_time(scan_res, s);
         let ship_targets = g(ship, "maxLockedTargets");
@@ -727,7 +764,7 @@ impl<'a> Fit<'a> {
         let targeting = json!({
             "max_targets": ship_targets.min(char_targets.max(0.0)),
             "max_range_m": g(ship, "maxTargetRange"), "scan_resolution": scan_res,
-            "sensor_strength": best.1, "sensor_type": best.0,
+            "sensor_strength": best.1, "sensor_type": best.0, "jam_chance_percent": jam.unwrap_or(0.0),
             "probe_size": if best.1 > 0.0 { Some((sig / best.1).max(1.08)) } else { None },
             "lock_time_s": {"sig_25m": lt(25.0), "sig_40m": lt(40.0), "sig_125m": lt(125.0), "sig_400m": lt(400.0), "sig_target_profile": tp.signature_radius.and_then(lt)},
         });

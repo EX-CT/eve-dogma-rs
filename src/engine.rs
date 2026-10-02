@@ -123,6 +123,8 @@ pub enum ProjSpecial {
     Rep { item: usize, layer: u8, amount: u32, mult: f64, factor: f64 },
     /// capacitor drain (sign +1) or fill (sign -1) per cycle of `duration` attr
     Drain { item: usize, amount: u32, duration: u32, factor: f64, resist: u32, sign: f64 },
+    /// ECM jam strength vs the target's strongest sensor type (Pyfa addProjectedEcm / jamChance)
+    Ecm { item: usize, fighter: bool, factor: f64, resist: u32 },
 }
 
 #[derive(Debug)]
@@ -130,6 +132,28 @@ pub struct EngineError {
     pub code: &'static str,
     pub message: String,
     pub path: String,
+}
+
+/// Pyfa default: standard attack on; other abilities (except MWD/evasive/MJD) on only if they come before the
+/// standard attack in effect order.
+fn default_fighter_abilities(ds: &Dataset, effects: &[(u32, bool)]) -> Vec<u32> {
+    let mut ids: Vec<u32> = effects.iter().map(|(e, _)| *e).collect();
+    ids.sort();
+    let mut on = Vec::new();
+    let mut std_seen = false;
+    for e in ids {
+        let Some(n) = ds.effects.get(&e).map(|x| x.name.as_str()) else { continue };
+        if !n.starts_with("fighterAbility") {
+            continue;
+        }
+        if n == "fighterAbilityAttackM" {
+            on.push(e);
+            std_seen = true;
+        } else if !std_seen && !matches!(n, "fighterAbilityMicroWarpDrive" | "fighterAbilityEvasiveManeuvers" | "fighterAbilityMicroJumpDrive") {
+            on.push(e);
+        }
+    }
+    on
 }
 
 fn state_ok(category: u8, state: State) -> bool {
@@ -340,29 +364,7 @@ impl<'a> Fit<'a> {
             }
             it.active_count = if f.active { it.quantity } else { 0 };
             it.state = if f.active { State::Active } else { State::Offline };
-            it.fighter_abilities = f.abilities.clone().or_else(|| {
-                // Pyfa default: standard attack on; other abilities (except MWD/evasive/MJD) on only if they
-                // come before the standard attack in effect order
-                let mut ids: Vec<u32> = it.effects.iter().map(|(e, _)| *e).collect();
-                ids.sort();
-                let mut on = Vec::new();
-                let mut std_seen = false;
-                for e in ids {
-                    let Some(n) = ds.effects.get(&e).map(|x| x.name.as_str()) else { continue };
-                    if !n.starts_with("fighterAbility") {
-                        continue;
-                    }
-                    if n == "fighterAbilityAttackM" {
-                        on.push(e);
-                        std_seen = true;
-                    } else if !std_seen
-                        && !matches!(n, "fighterAbilityMicroWarpDrive" | "fighterAbilityEvasiveManeuvers" | "fighterAbilityMicroJumpDrive")
-                    {
-                        on.push(e);
-                    }
-                }
-                Some(on)
-            });
+            it.fighter_abilities = f.abilities.clone().or_else(|| Some(default_fighter_abilities(ds, &it.effects)));
             it.req_index = Some(i);
         }
         for (i, imp) in req.implants.iter().enumerate() {
@@ -411,6 +413,23 @@ impl<'a> Fit<'a> {
                         }
                     }
                 }
+                "fighter" => {
+                    if let Some(f) = &p.fighter {
+                        for _ in 0..p.amount.max(1) {
+                            let idx = fit.new_item(f.type_id, Kind::Projected, Loc::Nowhere, &format!("/projected/{i}"))?;
+                            let sq = ds.attr_id("fighterSquadronMaxSize");
+                            let maxsq = fit.items[idx].attrs.get(&sq).map(|a| a.base as u32).unwrap_or(1).max(1);
+                            let it = &mut fit.items[idx];
+                            it.owned = false;
+                            it.state = if f.active { State::Active } else { State::Offline };
+                            it.quantity = f.quantity.unwrap_or(maxsq).clamp(1, maxsq);
+                            it.active_count = it.quantity;
+                            it.distance = p.distance_m;
+                            it.req_index = Some(i);
+                            it.fighter_abilities = f.abilities.clone().or_else(|| Some(default_fighter_abilities(ds, &it.effects)));
+                        }
+                    }
+                }
                 "fit" => {
                     // whole projected fit: compute the source fit on its own (its skills, implants, fleet), then
                     // project each active module / drone as a frozen item carrying the source-modified values.
@@ -424,20 +443,21 @@ impl<'a> Fit<'a> {
                                 continue;
                             }
                         };
-                        let mut frozen: Vec<(u32, u32, FxHashMap<u32, f64>)> = Vec::new();
+                        let mut frozen: Vec<(u32, u32, FxHashMap<u32, f64>, Kind, u32, Option<Vec<u32>>)> = Vec::new();
                         for (si, it) in src.items.iter().enumerate() {
                             let copies = match it.kind {
                                 Kind::Module if it.state >= State::Active => 1,
                                 Kind::Drone => it.active_count,
+                                Kind::Fighter if it.state >= State::Active => 1,
                                 _ => 0,
                             };
                             if copies == 0 {
                                 continue;
                             }
                             let vals: FxHashMap<u32, f64> = it.attrs.keys().map(|&a| (a, src.get(si, a))).collect();
-                            frozen.push((it.type_id, copies, vals));
+                            frozen.push((it.type_id, copies, vals, it.kind, it.quantity, it.fighter_abilities.clone()));
                         }
-                        for (type_id, copies, vals) in frozen {
+                        for (type_id, copies, vals, kind, qty, abil) in frozen {
                             for _ in 0..copies * p.amount.max(1) {
                                 let idx = fit.new_item(type_id, Kind::Projected, Loc::Nowhere, &format!("/projected/{i}"))?;
                                 let it = &mut fit.items[idx];
@@ -445,6 +465,11 @@ impl<'a> Fit<'a> {
                                 it.state = State::Active;
                                 it.distance = p.distance_m;
                                 it.req_index = Some(i);
+                                if kind == Kind::Fighter {
+                                    it.quantity = qty;
+                                    it.active_count = qty;
+                                    it.fighter_abilities = abil.clone();
+                                }
                                 for (a, v) in &vals {
                                     it.attrs.entry(*a).or_insert_with(|| Attr::new(*v)).base = *v;
                                 }
@@ -637,6 +662,32 @@ impl<'a> Fit<'a> {
                     continue;
                 }
                 // ---- special effects (no modifierInfo in the SDE)
+                if kind == Kind::Fighter && e.mods.is_empty() {
+                    // fighter self abilities (Pyfa hand-written handlers, eos LGPL)
+                    let mut fm: Vec<(&str, &str, i32)> = Vec::new();
+                    match e.name.as_str() {
+                        "fighterAbilityMicroWarpDrive" => {
+                            fm.push(("maxVelocity", "fighterAbilityMicroWarpDriveSpeedBonus", 6));
+                            fm.push(("signatureRadius", "fighterAbilityMicroWarpDriveSignatureRadiusBonus", 6));
+                        }
+                        "fighterAbilityAfterburner" => fm.push(("maxVelocity", "fighterAbilityAfterburnerSpeedBonus", 6)),
+                        "fighterAbilityEvasiveManeuvers" => {
+                            fm.push(("maxVelocity", "fighterAbilityEvasiveManeuversSpeedBonus", 6));
+                            fm.push(("signatureRadius", "fighterAbilityEvasiveManeuversSignatureRadiusBonus", 6));
+                            fm.push(("shieldEmDamageResonance", "fighterAbilityEvasiveManeuversEmResonance", 4));
+                            fm.push(("shieldThermalDamageResonance", "fighterAbilityEvasiveManeuversThermResonance", 4));
+                            fm.push(("shieldKineticDamageResonance", "fighterAbilityEvasiveManeuversKinResonance", 4));
+                            fm.push(("shieldExplosiveDamageResonance", "fighterAbilityEvasiveManeuversExpResonance", 4));
+                        }
+                        _ => {}
+                    }
+                    if !fm.is_empty() {
+                        for (t, a, op) in fm {
+                            self.push_mod(i, ds.attr_id(t), op, Src::Attr { item: i, attr: ds.attr_id(a) }, i, src_cat);
+                        }
+                        continue;
+                    }
+                }
                 if eid == e_ab || eid == e_mwd {
                     let ship = self.ship;
                     self.push_mod(ship, 4, 2, Src::Attr { item: i, attr: ds.attr_id("massAddition") }, i, src_cat);
@@ -713,10 +764,17 @@ impl<'a> Fit<'a> {
         let state = self.items[i].state;
         let effects = self.items[i].effects.clone();
         let ship = self.ship;
+        let abilities = self.items[i].fighter_abilities.clone();
+        let qty = self.items[i].quantity.max(1) as f64;
         for (eid, _) in effects {
             let Some(e) = ds.effects.get(&eid) else { continue };
-            if e.category != 2 && e.category != 3 {
+            if e.category != 2 && e.category != 3 && e.name != "ECMBurstJammer" {
                 continue;
+            }
+            if let Some(ab) = &abilities {
+                if e.name.starts_with("fighterAbility") && !ab.contains(&eid) {
+                    continue;
+                }
             }
             if state < State::Active {
                 continue;
@@ -728,8 +786,16 @@ impl<'a> Fit<'a> {
                 crate::stats::range_factor(opt, fo, it.distance, true)
             };
             let resist = e.resistance_attr.unwrap_or_else(|| {
-                self.items[i].attrs.get(&ds.attr_id("remoteResistanceID")).map(|a| a.base as u32).unwrap_or(0)
+                let it = &self.items[i];
+                let look = |n: &str| it.attrs.get(&ds.attr_id(n)).map(|a| a.base as u32).unwrap_or(0);
+                if e.name.starts_with("fighterAbility") {
+                    let r = look(&format!("{}ResistanceID", e.name));
+                    if r != 0 { r } else { look(&format!("{}RemoteResistanceID", e.name)) }
+                } else {
+                    look("remoteResistanceID")
+                }
             });
+            let target_offense_ok = self.items[ship].attrs.get(&ds.attr_id("disallowOffensiveModifiers")).map(|a| a.base == 0.0).unwrap_or(true);
             let mut push = |fit: &mut Fit, target_attr: u32, src_attr: u32, op: i32| {
                 let mul = op == 4 || op == 0;
                 fit.push_mod(
@@ -750,6 +816,22 @@ impl<'a> Fit<'a> {
                 continue;
             }
             let name = e.name.as_str();
+            let pbase = |n: &str| self.items[i].attrs.get(&ds.attr_id(n)).map(|a| a.base).unwrap_or(0.0);
+            if name == "fighterAbilityStasisWebifier" {
+                if target_offense_ok {
+                    let f = crate::stats::range_factor(pbase("fighterAbilityStasisWebifierOptimalRange"), pbase("fighterAbilityStasisWebifierFalloffRange"), self.items[i].distance, true) * qty;
+                    self.push_mod(ship, ds.attr_id("maxVelocity"), 6,
+                        Src::Projected { item: i, attr: ds.attr_id("fighterAbilityStasisWebifierSpeedPenalty"), factor: f, target: ship, resist, mul: false }, i, src_cat);
+                }
+                continue;
+            }
+            if name == "fighterAbilityWarpDisruption" {
+                if target_offense_ok && pbase("fighterAbilityWarpDisruptionRange") >= self.items[i].distance.unwrap_or(0.0) {
+                    self.push_mod(ship, ds.attr_id("warpScrambleStatus"), 2,
+                        Src::Projected { item: i, attr: ds.attr_id("fighterAbilityWarpDisruptionPointStrength"), factor: qty, target: ship, resist, mul: false }, i, src_cat);
+                }
+                continue;
+            }
             if name.starts_with("remoteWebifier") || name == "structureModuleEffectStasisWebifier" {
                 push(self, ds.attr_id("maxVelocity"), ds.attr_id("speedFactor"), 6);
             } else if name.starts_with("remoteTargetPaint") || name == "structureModuleEffectTargetPainter" {
@@ -789,6 +871,8 @@ impl<'a> Fit<'a> {
             if no_assist { vec![] } else { vec![ProjSpecial::Rep { item: i, layer, amount: a(amt), mult, factor }] }
         };
         let drain = |amt: &str, dur: &str, factor: f64, sign: f64| vec![ProjSpecial::Drain { item: i, amount: a(amt), duration: a(dur), factor, resist, sign }];
+        let no_offense = self.items[self.ship].attrs.get(&a("disallowOffensiveModifiers")).map(|x| x.base != 0.0).unwrap_or(false);
+        let ecm = |fighter: bool, factor: f64| if no_offense { vec![] } else { vec![ProjSpecial::Ecm { item: i, fighter, factor, resist }] };
         let paste = it.charge.map(|c| ds.types.get(&self.items[c].type_id).map(|t| t.name == "Nanite Repair Paste").unwrap_or(false)).unwrap_or(false);
         Some(match name {
             "shipModuleRemoteShieldBooster" | "shipModuleAncillaryRemoteShieldBooster" => rep(0, "shieldBonus", 1.0, falloff_factor()),
@@ -802,6 +886,17 @@ impl<'a> Fit<'a> {
                 if no_assist { vec![] } else { drain("powerTransferAmount", "duration", gate(base("maxRange")), -1.0) }
             }
             "energyNeutralizerFalloff" => drain("energyNeutralizerAmount", "duration", falloff_factor(), 1.0),
+            "fighterAbilityEnergyNeutralizer" => {
+                let f = crate::stats::range_factor(base("fighterAbilityEnergyNeutralizerOptimalRange"), base("fighterAbilityEnergyNeutralizerFalloffRange"), dist, true);
+                drain("fighterAbilityEnergyNeutralizerAmount", "fighterAbilityEnergyNeutralizerDuration", f * it.quantity.max(1) as f64, 1.0)
+            }
+            "remoteECMFalloff" | "structureModuleEffectECM" => ecm(false, falloff_factor()),
+            "entityECMFalloff" => ecm(false, gate(base("ECMRangeOptimal"))),
+            "ECMBurstJammer" => ecm(false, gate(base("ecmBurstRange"))),
+            "fighterAbilityECM" => {
+                let f = crate::stats::range_factor(base("fighterAbilityECMRangeOptimal"), base("fighterAbilityECMRangeFalloff"), dist, true);
+                ecm(true, f * it.quantity.max(1) as f64)
+            }
             "energyNosferatuFalloff" => drain("powerTransferAmount", "duration", falloff_factor(), 1.0),
             "structureEnergyNeutralizerFalloff" => drain("energyNeutralizerAmount", "duration", 1.0, 1.0),
             "entityEnergyNeutralizerFalloff" => {

@@ -99,18 +99,26 @@ def build(req):
         dr.amount = d.get("quantity", 1)
         dr.amountActive = d.get("active", 0) or 0
         fit.drones.append(dr)
+        ORACLE_DRONES.setdefault(id(fit), []).append(dr)
         dr.owner = fit
     for f in req.get("fighters", []):
         fi = Fighter(item(f["type_id"]))
         if f.get("quantity"):
             fi.amount = f["quantity"]
         fi.active = bool(f.get("active", True))
+        if f.get("abilities") is not None:
+            for ab in fi.abilities:
+                ab.active = ab.effectID in f["abilities"]
         fit.fighters.append(fi)
+        ORACLE_FIGHTERS.setdefault(id(fit), []).append(fi)
         fi.owner = fit
     for i in req.get("implants", []):
         fit.implants.append(Implant(item(i)))
     for b in req.get("boosters", []):
-        fit.boosters.append(Booster(item(b["type_id"])))
+        bo = Booster(item(b["type_id"]))
+        for se in bo.sideEffects:
+            se.active = se.effectID in b.get("side_effects", [])
+        fit.boosters.append(bo)
     for p in req.get("projected", []):
         if p.get("kind") == "module":
             for _ in range(p.get("amount", 1)):
@@ -126,6 +134,17 @@ def build(req):
             pd.amountActive = pd.amount
             pd.projectionRange = p.get("distance_m")
             fit.projectedDrones.append(pd)
+        elif p.get("kind") == "fighter":
+            for _ in range(p.get("amount", 1)):
+                pf = Fighter(item(p["fighter"]["type_id"]))
+                if p["fighter"].get("quantity"):
+                    pf.amount = p["fighter"]["quantity"]
+                pf.active = bool(p["fighter"].get("active", True))
+                pf.projectionRange = p.get("distance_m")
+                if p["fighter"].get("abilities") is not None:
+                    for ab in pf.abilities:
+                        ab.active = ab.effectID in p["fighter"]["abilities"]
+                fit.projectedFighters.append(pf)
         elif p.get("kind") == "fit":
             sreq = dict(p["fit"]); sreq["projected"] = []
             sf = build(sreq)
@@ -186,7 +205,7 @@ def stats(fit):
         "max_velocity": fit.maxSpeed, "align_time_s": fit.alignTime, "mass": g("mass"), "agility": g("agility"),
         "signature_radius": g("signatureRadius"), "warp_speed": fit.warpSpeed, "max_warp_distance": fit.maxWarpDistance,
         "max_targets": fit.maxTargets, "max_target_range": fit.maxTargetRange, "scan_resolution": g("scanResolution"),
-        "scan_strength": fit.scanStrength, "probe_size": fit.probeSize,
+        "scan_strength": fit.scanStrength, "jam_chance": fit.jamChance, "warp_scramble_status": g("warpScrambleStatus"), "probe_size": fit.probeSize,
         "hi_slots": g("hiSlots"), "med_slots": g("medSlots"), "low_slots": g("lowSlots"),
         "turret_hardpoints": g("turretSlotsLeft"), "launcher_hardpoints": g("launcherSlotsLeft"),
     }
@@ -194,6 +213,28 @@ def stats(fit):
 
 
 ORACLE_MODS = {}
+ORACLE_DRONES = {}
+ORACLE_FIGHTERS = {}
+
+
+def drones_fighters(fit):
+    ds, fs = [], []
+    for idx, d in enumerate(ORACLE_DRONES.get(id(fit), [])):
+        try:
+            if d.amountActive <= 0 or d.getDps().total <= 0:
+                continue
+        except Exception:
+            continue
+        ds.append({"drone_index": idx, "optimal_m": d.maxRange, "falloff_m": d.falloff, "tracking": d.getModifiedItemAttr("trackingSpeed"),
+                   "max_velocity": d.getModifiedItemAttr("maxVelocity"), "signature_radius": d.getModifiedItemAttr("signatureRadius")})
+    for idx, f in enumerate(ORACLE_FIGHTERS.get(id(fit), [])):
+        try:
+            if not f.active or f.getDps().total <= 0:
+                continue
+        except Exception:
+            continue
+        fs.append({"fighter_index": idx, "max_velocity": f.getModifiedItemAttr("maxVelocity"), "signature_radius": f.getModifiedItemAttr("signatureRadius")})
+    return ds, fs
 
 
 def weapons(fit):
@@ -231,6 +272,8 @@ def main():
         fit.calculateModifiedAttributes()
         st = stats(fit)
         st["weapons"] = weapons(fit)
+        st["drones"], st["fighters"] = drones_fighters(fit)
+        st["drone_control_range"] = fit.extraAttributes["droneControlRange"]
         first = time.perf_counter() - t0
         n = int(os.environ.get("ORACLE_REPEAT", "5"))
         t1 = time.perf_counter()

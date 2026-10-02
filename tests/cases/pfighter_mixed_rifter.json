@@ -1,0 +1,1 @@
+{"eft": "fits/exct_rifter.eft", "patch": {"projected": [{"kind": "fighter", "fighter": {"type_id": 40571, "quantity": 6, "abilities": [6435]}, "amount": 2, "distance_m": 3000}, {"kind": "fighter", "fighter": {"type_id": 40568, "abilities": [6434]}, "amount": 1, "distance_m": 3000}]}}

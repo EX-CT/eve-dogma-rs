@@ -144,6 +144,8 @@ pub struct Projected {
     pub drone: Option<DroneReq>,
     #[serde(default)]
     pub fit: Option<Box<FitRequest>>,
+    #[serde(default)]
+    pub fighter: Option<FighterReq>,
     #[serde(default = "one")]
     pub amount: u32,
     #[serde(default)]
