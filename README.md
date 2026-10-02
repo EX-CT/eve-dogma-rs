@@ -34,8 +34,10 @@ stacking-exempt modifiers, they are applied generically instead of the engine-si
 twice. The burst-projector patch (0101) stays engine-side.
 
 Cold start: the parsed dataset is cached as bincode in `$EVE_DOGMA_CACHE_DIR` (default `<tmp>/eve-dogma-cache`),
-keyed by the dataset file's SHA-256 and the executable's size/mtime (never stale). A cached start loads the dataset
-in about 15 ms instead of about 100 ms; the output is byte-identical. Disable with `EVE_DOGMA_NO_CACHE=1`.
+keyed by a 128-bit content hash of the dataset file and the executable's size/mtime (the reported
+`meta.dataset_sha256` is the real SHA-256, computed on the first parse). The 6 most recent entries are kept. A whole
+cached `calc` process takes about 11 ms; an uncached one takes about 100 ms. The output is byte-identical. Disable with
+`EVE_DOGMA_NO_CACHE=1`.
 
 Library: `eve_dogma::calc(&Dataset, &FitRequest) -> serde_json::Value` (pure; no I/O, clocks or globals).
 

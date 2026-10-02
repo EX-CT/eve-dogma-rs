@@ -357,6 +357,9 @@ impl Dataset {
                 if std::fs::write(&tmp, &b).is_ok() && std::fs::rename(&tmp, &cf).is_err() {
                     let _ = std::fs::remove_file(&tmp);
                 }
+                if let Some(dir) = cf.parent() {
+                    prune_cache(dir);
+                }
             }
         }
         Ok(ds)
@@ -560,8 +563,47 @@ fn cache_file(bytes: &[u8]) -> Option<std::path::PathBuf> {
     let m = std::fs::metadata(&exe).ok()?;
     let mtime = m.modified().ok()?.duration_since(std::time::UNIX_EPOCH).ok()?.as_nanos();
     let dir = std::env::var_os("EVE_DOGMA_CACHE_DIR").map(std::path::PathBuf::from).unwrap_or_else(|| std::env::temp_dir().join("eve-dogma-cache"));
-    let key = sha256_hex(format!("{}|{}|{}|{}", sha256_hex(bytes), m.len(), mtime, env!("CARGO_PKG_VERSION")).as_bytes());
+    // content key: a fast 128-bit non-cryptographic hash of the dataset file (the sha256 of a 0.9 MB file was ~40% of
+    // a cached cold start without SHA CPU extensions); a stale entry can only come from a 128-bit collision
+    let (h1, h2) = fast_hash128(bytes);
+    let key = sha256_hex(format!("{h1:016x}{h2:016x}|{}|{}|{}|{}", bytes.len(), m.len(), mtime, env!("CARGO_PKG_VERSION")).as_bytes());
     Some(dir.join(format!("ds-{}.bin", &key[..32])))
+}
+
+/// two independent 64-bit multiply-xorshift lanes over 8-byte words (+ the tail)
+fn fast_hash128(b: &[u8]) -> (u64, u64) {
+    let (mut h1, mut h2) = (0x9e37_79b9_7f4a_7c15u64 ^ b.len() as u64, 0xc2b2_ae3d_27d4_eb4fu64);
+    let mut ch = b.chunks_exact(8);
+    for c in &mut ch {
+        let w = u64::from_le_bytes(c.try_into().unwrap());
+        h1 = (h1.rotate_left(5) ^ w).wrapping_mul(0x51_7cc1_b727_220a_95);
+        h2 = (h2 ^ w.rotate_left(29)).wrapping_mul(0x9fb2_1c65_1e98_df25).rotate_left(31);
+    }
+    for &x in ch.remainder() {
+        h1 = (h1.rotate_left(5) ^ x as u64).wrapping_mul(0x51_7cc1_b727_220a_95);
+        h2 = (h2 ^ x as u64).wrapping_mul(0x9fb2_1c65_1e98_df25).rotate_left(31);
+    }
+    let fin = |mut h: u64| {
+        h ^= h >> 33;
+        h = h.wrapping_mul(0xff51_afd7_ed55_8ccd);
+        h ^= h >> 33;
+        h
+    };
+    (fin(h1), fin(h2 ^ h1.rotate_left(17)))
+}
+
+/// keep the cache directory small: after writing a new entry, remove all but the 6 most recent ds-*.bin files
+fn prune_cache(dir: &std::path::Path) {
+    let Ok(rd) = std::fs::read_dir(dir) else { return };
+    let mut v: Vec<(std::time::SystemTime, std::path::PathBuf)> = rd
+        .filter_map(|e| e.ok())
+        .filter(|e| e.file_name().to_string_lossy().starts_with("ds-") && e.file_name().to_string_lossy().ends_with(".bin"))
+        .filter_map(|e| Some((e.metadata().ok()?.modified().ok()?, e.path())))
+        .collect();
+    v.sort_by(|a, b| b.0.cmp(&a.0));
+    for (_, p) in v.into_iter().skip(6) {
+        let _ = std::fs::remove_file(p);
+    }
 }
 
 pub fn sha256_hex(data: &[u8]) -> String {
