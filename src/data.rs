@@ -129,6 +129,46 @@ pub struct MutaInfo {
     pub mapping: Vec<MutaMapping>,
 }
 
+/// id-indexed table (attribute / effect ids are small and dense): O(1) lookups without hashing
+pub struct Dense<T> {
+    v: Vec<Option<T>>,
+    n: usize,
+}
+
+impl<T> Default for Dense<T> {
+    fn default() -> Self {
+        Dense { v: Vec::new(), n: 0 }
+    }
+}
+
+impl<T> Dense<T> {
+    #[inline]
+    pub fn get(&self, id: &u32) -> Option<&T> {
+        self.v.get(*id as usize).and_then(|x| x.as_ref())
+    }
+    pub fn insert(&mut self, id: u32, t: T) {
+        let i = id as usize;
+        if i >= self.v.len() {
+            self.v.resize_with(i + 1, || None);
+        }
+        if self.v[i].replace(t).is_none() {
+            self.n += 1;
+        }
+    }
+    pub fn len(&self) -> usize {
+        self.n
+    }
+    pub fn is_empty(&self) -> bool {
+        self.n == 0
+    }
+    pub fn contains_key(&self, id: &u32) -> bool {
+        self.get(id).is_some()
+    }
+    pub fn iter(&self) -> impl Iterator<Item = (u32, &T)> {
+        self.v.iter().enumerate().filter_map(|(i, x)| x.as_ref().map(|t| (i as u32, t)))
+    }
+}
+
 pub struct Dataset {
     pub build: u64,
     pub release_date: Option<String>,
@@ -137,8 +177,8 @@ pub struct Dataset {
     pub groups: FxHashMap<u32, GroupInfo>,
     /// category id -> English name
     pub categories: FxHashMap<u32, String>,
-    pub attrs: FxHashMap<u32, AttrInfo>,
-    pub effects: FxHashMap<u32, EffectInfo>,
+    pub attrs: Dense<AttrInfo>,
+    pub effects: Dense<EffectInfo>,
     pub dbuffs: FxHashMap<u32, DbuffInfo>,
     pub mutaplasmids: FxHashMap<u32, MutaInfo>,
     pub names_zh: FxHashMap<u32, String>,
@@ -298,7 +338,7 @@ impl Dataset {
         if raw.format != "exct-eve-dataset" || raw.format_version != 1 {
             return Err(format!("unsupported dataset format {} v{}", raw.format, raw.format_version));
         }
-        let mut attrs = FxHashMap::default();
+        let mut attrs = Dense::default();
         let mut attr_by_name = FxHashMap::default();
         for (k, a) in raw.attributes {
             let id: u32 = k.parse().unwrap_or(0);
@@ -319,7 +359,7 @@ impl Dataset {
                 },
             );
         }
-        let mut effects = FxHashMap::default();
+        let mut effects = Dense::default();
         let mut effect_by_name = FxHashMap::default();
         for (k, e) in raw.effects {
             let id: u32 = k.parse().unwrap_or(0);
