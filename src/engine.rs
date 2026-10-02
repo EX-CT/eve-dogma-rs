@@ -641,12 +641,18 @@ impl<'a> Fit<'a> {
     // ---------------------------------------------------------------- registration
     fn push_mod(&mut self, target: usize, attr: u32, op: i32, src: Src, source_item: usize, source_cat: u32) {
         let ds = self.ds;
-        let stackable = ds.attrs.get(&attr).map(|a| a.stackable).unwrap_or(true);
+        let info = ds.attrs.get(&attr);
+        let stackable = info.map(|a| a.stackable).unwrap_or(true);
         let penalized = !stackable && !EXEMPT_CATEGORIES.contains(&source_cat);
-        let def = ds.attr_default(attr);
         let it = &mut self.items[target];
-        let base = it.tbase(attr).unwrap_or(def);
-        let a = it.attrs.entry(attr).or_insert_with(|| Attr::new(base));
+        let tattrs = it.tattrs;
+        let a = it.attrs.entry(attr).or_insert_with(|| {
+            let base = match tattrs.binary_search_by_key(&attr, |x| x.0) {
+                Ok(k) => tattrs[k].1,
+                Err(_) => info.map(|a| a.default).unwrap_or(0.0),
+            };
+            Attr::new(base)
+        });
         a.mods.push(AMod { op, penalized, src, source_item });
     }
 
@@ -759,6 +765,10 @@ impl<'a> Fit<'a> {
 
     fn register_all(&mut self, req: &FitRequest) {
         self.tindex = Some(TIndex::build(&self.items));
+        // pre-size the attribute maps of the items that collect many modifiers (avoids repeated rehashing)
+        let (ship, ch) = (self.ship, self.char);
+        self.items[ship].attrs.reserve(448);
+        self.items[ch].attrs.reserve(48);
         let ds = self.ds;
         let n = self.items.len();
         let e_ab = ds.effect_id("moduleBonusAfterburner");
