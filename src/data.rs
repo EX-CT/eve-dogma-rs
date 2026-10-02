@@ -86,6 +86,8 @@ pub struct TypeInfo {
     pub variation_parent: Option<u32>,
     pub attrs: Vec<(u32, f64)>,
     pub effects: Vec<(u32, bool)>,
+    /// non-zero requiredSkill1..6 values (computed at load)
+    pub req_skills: Vec<u32>,
 }
 
 impl TypeInfo {
@@ -361,6 +363,17 @@ impl Dataset {
             }
             let mut a: Vec<(u32, f64)> = t.attrs.into_iter().map(|(k, v)| (k.parse().unwrap_or(0), v)).collect();
             a.sort_by_key(|x| x.0);
+            // type-level fields are authoritative for mass/capacity/volume/radius (present even when 0)
+            for (aid, v) in [(4u32, t.mass), (38, t.capacity), (161, t.volume), (162, t.radius)] {
+                match a.binary_search_by_key(&aid, |x| x.0) {
+                    Ok(i) => {
+                        if v != 0.0 {
+                            a[i].1 = v
+                        }
+                    }
+                    Err(i) => a.insert(i, (aid, v)),
+                }
+            }
             types.insert(
                 id,
                 TypeInfo {
@@ -377,6 +390,11 @@ impl Dataset {
                     meta_group: t.meta_group,
                     meta_level: t.meta_level,
                     variation_parent: t.variation_parent,
+                    req_skills: [182u32, 183, 184, 1285, 1289, 1290]
+                        .iter()
+                        .filter_map(|id| a.binary_search_by_key(id, |x| x.0).ok().map(|i| a[i].1 as u32))
+                        .filter(|v| *v != 0)
+                        .collect(),
                     attrs: a,
                     effects: t.effects.into_iter().map(|(e, d)| (e, d != 0)).collect(),
                 },

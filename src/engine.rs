@@ -99,9 +99,9 @@ pub struct Item<'a> {
     /// overridden or modified get an entry in `attrs`, which takes precedence
     pub tattrs: &'a [(u32, f64)],
     pub attrs: FxHashMap<u32, Attr>,
-    pub req_skills: Vec<u32>,
-    /// effect ids carried by this item (own + mutation base)
-    pub effects: Vec<(u32, bool)>,
+    pub req_skills: std::borrow::Cow<'a, [u32]>,
+    /// effect ids carried by this item (own + mutation base); borrowed from the dataset unless mutated
+    pub effects: std::borrow::Cow<'a, [(u32, bool)]>,
     pub fighter_abilities: Option<Vec<u32>>,
     pub booster_side_effects: Vec<u32>,
     pub spool: Option<crate::request::Spool>,
@@ -139,7 +139,7 @@ impl TIndex {
             if it.loc == Loc::Ship {
                 t.ship_loc.push(i);
                 t.ship_group.entry(it.group).or_default().push(i);
-                for s in &it.req_skills {
+                for s in it.req_skills.iter() {
                     let v = t.ship_skill.entry(*s).or_default();
                     if v.last() != Some(&i) {
                         v.push(i);
@@ -147,7 +147,7 @@ impl TIndex {
                 }
             }
             if it.owned {
-                for s in &it.req_skills {
+                for s in it.req_skills.iter() {
                     let v = t.owned_skill.entry(*s).or_default();
                     if v.last() != Some(&i) {
                         v.push(i);
@@ -159,7 +159,7 @@ impl TIndex {
                 t.char_group.entry(it.group).or_default().push(i);
             }
             if (it.owned || it.loc == Loc::Char) && it.kind != Kind::Skill {
-                for s in &it.req_skills {
+                for s in it.req_skills.iter() {
                     let v = t.char_skill.entry(*s).or_default();
                     if v.last() != Some(&i) {
                         v.push(i);
@@ -323,20 +323,14 @@ impl<'a> Fit<'a> {
             active_count: 0,
             tattrs: &t.attrs,
             attrs: FxHashMap::default(),
-            req_skills: Vec::new(),
-            effects: t.effects.clone(),
+            req_skills: std::borrow::Cow::Borrowed(&t.req_skills),
+            effects: std::borrow::Cow::Borrowed(&t.effects),
             fighter_abilities: None,
             booster_side_effects: Vec::new(),
             spool: None,
             distance: None,
         };
         set_type_attrs(&mut item, t);
-        item.req_skills = REQ_SKILL_ATTRS
-            .iter()
-            .filter_map(|a| t.attr(*a))
-            .map(|v| v as u32)
-            .filter(|v| *v != 0)
-            .collect();
         self.items.push(item);
         Ok(self.items.len() - 1)
     }
@@ -356,16 +350,11 @@ impl<'a> Fit<'a> {
             }
             for (e, d) in &base.effects {
                 if !own.iter().any(|(x, _)| x == e) {
-                    item.effects.push((*e, *d));
+                    item.effects.to_mut().push((*e, *d));
                 }
             }
             if item.req_skills.is_empty() {
-                item.req_skills = REQ_SKILL_ATTRS
-                    .iter()
-                    .filter_map(|a| base.attr(*a))
-                    .map(|v| v as u32)
-                    .filter(|v| *v != 0)
-                    .collect();
+                item.req_skills = std::borrow::Cow::Borrowed(&base.req_skills);
             }
             if item.base_opt(4).unwrap_or(0.0) == 0.0 && base.mass != 0.0 {
                 item.attrs.insert(4, Attr::new(base.mass));
@@ -793,7 +782,7 @@ impl<'a> Fit<'a> {
             let state = self.effective_state(i);
             let src_cat = self.items[i].category;
             let effects = self.items[i].effects.clone();
-            for (eid, is_default) in effects {
+            for &(eid, is_default) in effects.iter() {
                 if eid == EFFECT_SKILL_EFFECT {
                     continue;
                 }
@@ -926,7 +915,7 @@ impl<'a> Fit<'a> {
         let ship = self.ship;
         let abilities = self.items[i].fighter_abilities.clone();
         let qty = self.items[i].quantity.max(1) as f64;
-        for (eid, _) in effects {
+        for &(eid, _) in effects.iter() {
             let Some(e) = ds.effects.get(&eid) else { continue };
             if e.category != 2 && e.category != 3 && e.name != "ECMBurstJammer" {
                 continue;
@@ -1452,17 +1441,9 @@ impl<'a> Fit<'a> {
     }
 }
 
-fn set_type_attrs(item: &mut Item<'_>, t: &TypeInfo) {
-    // base attributes stay in the dataset (item.tattrs); type-level fields are authoritative
-    // (mass/capacity/volume/radius) and only materialised when they differ
-    for (a, v) in [(4u32, t.mass), (38, t.capacity), (161, t.volume), (162, t.radius)] {
-        match item.tbase(a) {
-            Some(b) if b == v || v == 0.0 => {}
-            _ => {
-                item.attrs.insert(a, Attr::new(v));
-            }
-        }
-    }
+fn set_type_attrs(_item: &mut Item<'_>, _t: &TypeInfo) {
+    // base attributes (incl. the authoritative type-level mass/capacity/volume/radius merged at dataset
+    // load) stay in the dataset: item.tattrs
 }
 
 impl Item<'_> {
