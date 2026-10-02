@@ -10,6 +10,8 @@ const EXEMPT_CATEGORIES: [u32; 6] = [6, 8, 16, 20, 32, 65];
 pub const REQ_SKILL_ATTRS: [u32; 6] = [182, 183, 184, 1285, 1289, 1290];
 pub const ATTR_SKILL_LEVEL: u32 = 280;
 const EFFECT_SKILL_EFFECT: u32 = 132;
+/// em/explosive/kinetic/thermal DamageResonance (hull)
+const HULL_RESONANCES: [u32; 4] = [113, 111, 109, 110];
 /// On structures (category 65) pilot skills do not affect the structure, except these effects
 /// (max locked targets + skillStructure* bonuses). Matches observed game/Pyfa behaviour.
 const STRUCTURE_SKILL_EFFECT_NAMES: [&str; 5] = [
@@ -507,6 +509,7 @@ impl<'a> Fit<'a> {
         let e_slot = ds.effect_id("slotModifier");
         let e_hp = ds.effect_id("hardPointModifierEffect");
         let e_mjd = ds.effect_id("microJumpDrive");
+        let e_bastion = ds.effect_id("moduleBonusBastionModule");
         let is_structure = self.items[self.ship].category == 65;
         let structure_ok: Vec<u32> = STRUCTURE_SKILL_EFFECT_NAMES.iter().map(|n| ds.effect_id(n)).collect();
         for i in 0..n {
@@ -607,8 +610,10 @@ impl<'a> Fit<'a> {
                         m.extra
                     };
                     let targets = self.targets(i, m.func, m.domain, extra);
+                    // Bastion hull resists are not stacking penalised in game (observed by Pyfa); SDE marks the attrs non-stackable
+                    let cat = if eid == e_bastion && HULL_RESONANCES.contains(&m.modified) { 6 } else { src_cat };
                     for t in targets {
-                        self.push_mod(t, m.modified, m.op, Src::Attr { item: i, attr: m.modifying }, i, src_cat);
+                        self.push_mod(t, m.modified, m.op, Src::Attr { item: i, attr: m.modifying }, i, cat);
                     }
                 }
             }
