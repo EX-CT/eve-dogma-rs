@@ -28,15 +28,26 @@ pub struct CapResult {
     pub iterations: u64,
 }
 
+/// static part of an event source (never changes while simulating)
 #[derive(Debug, Clone, Copy)]
-struct Ev {
-    t: f64,
+struct Source {
     duration: f64,
     cap_need: f64,
-    shot: u32,
     clip: u32,
     reload: f64,
     inj: bool,
+}
+
+/// heap entry: Pyfa's heapq orders `[t, duration, capNeed, shot, clipSize, reloadTime, isInjector]` then insertion
+/// order; the static fields are replaced by their precomputed ranks (r1 = (duration, capNeed), r2 = (clip, reload,
+/// inj)), which gives exactly the same order with a smaller, cheaper-to-compare entry.
+#[derive(Debug, Clone, Copy)]
+struct Ev {
+    t: f64,
+    r1: u32,
+    shot: u32,
+    r2: u32,
+    src: u32,
     seq: u64,
 }
 impl PartialEq for Ev {
@@ -51,21 +62,14 @@ impl PartialOrd for Ev {
     }
 }
 impl Ord for Ev {
+    #[inline]
     fn cmp(&self, o: &Self) -> Ordering {
-        // min-heap with Python-list ordering like Pyfa's heapq of
-        // [t, duration, capNeed, shot, clipSize, reloadTime, isInjector], then insertion order
-        #[inline(always)]
-        fn f(a: f64, b: f64) -> Ordering {
-            b.partial_cmp(&a).unwrap_or(Ordering::Equal)
-        }
-        // lazy tie-breaks: almost every comparison is decided by `t`
-        f(self.t, o.t)
-            .then_with(|| f(self.duration, o.duration))
-            .then_with(|| f(self.cap_need, o.cap_need))
+        // min-heap (BinaryHeap is a max-heap): reversed comparisons
+        o.t.partial_cmp(&self.t)
+            .unwrap_or(Ordering::Equal)
+            .then_with(|| o.r1.cmp(&self.r1))
             .then_with(|| o.shot.cmp(&self.shot))
-            .then_with(|| o.clip.cmp(&self.clip))
-            .then_with(|| f(self.reload, o.reload))
-            .then_with(|| o.inj.cmp(&self.inj))
+            .then_with(|| o.r2.cmp(&self.r2))
             .then_with(|| o.seq.cmp(&self.seq))
     }
 }
@@ -76,7 +80,10 @@ fn gcd(a: u64, b: u64) -> u64 {
 
 pub fn simulate(capacity: f64, recharge_ms: f64, drains: &[Drain], start_frac: f64, reload: bool, stagger: bool, t_max_ms: f64) -> CapResult {
     let tau = recharge_ms / 5.0;
-    let mut heap = BinaryHeap::new();
+    let mut heap: BinaryHeap<Ev> = BinaryHeap::new();
+    // (source, initial t) in insertion order; ranks are assigned once all sources are known
+    let mut sources: Vec<Source> = Vec::new();
+    let mut initial: Vec<(u32, f64)> = Vec::new();
     let mut seq = 0u64;
     let mut period: u64 = 1;
     let mut disable_period = false;
@@ -106,9 +113,9 @@ pub fn simulate(capacity: f64, recharge_ms: f64, drains: &[Drain], start_frac: f
             disable_period = true;
         }
         if d.is_injector {
+            sources.push(Source { duration: d.duration, cap_need: d.cap_need, clip: d.clip_size, reload: d.reload_ms, inj: true });
             for _ in 0..*n {
-                heap.push(Ev { t: 0.0, duration: d.duration, cap_need: d.cap_need, shot: 0, clip: d.clip_size, reload: d.reload_ms, inj: true, seq });
-                seq += 1;
+                initial.push((sources.len() as u32 - 1, 0.0));
             }
             continue;
         }
@@ -117,9 +124,9 @@ pub fn simulate(capacity: f64, recharge_ms: f64, drains: &[Drain], start_frac: f
                 d.duration = (d.duration / *n as f64).floor();
             } else {
                 let st = (d.duration * d.clip_size as f64 + d.reload_ms) / (*n as f64 * d.clip_size as f64);
+                sources.push(Source { duration: d.duration, cap_need: d.cap_need, clip: d.clip_size, reload: d.reload_ms, inj: false });
                 for i in 1..*n {
-                    heap.push(Ev { t: i as f64 * st, duration: d.duration, cap_need: d.cap_need, shot: 0, clip: d.clip_size, reload: d.reload_ms, inj: false, seq });
-                    seq += 1;
+                    initial.push((sources.len() as u32 - 1, i as f64 * st));
                 }
             }
         } else {
@@ -127,7 +134,28 @@ pub fn simulate(capacity: f64, recharge_ms: f64, drains: &[Drain], start_frac: f
         }
         let dur = d.duration.round().max(1.0) as u64;
         period = period / gcd(period, dur) * dur;
-        heap.push(Ev { t: 0.0, duration: d.duration, cap_need: d.cap_need, shot: 0, clip: d.clip_size, reload: d.reload_ms, inj: false, seq });
+        sources.push(Source { duration: d.duration, cap_need: d.cap_need, clip: d.clip_size, reload: d.reload_ms, inj: false });
+        initial.push((sources.len() as u32 - 1, 0.0));
+    }
+    // ranks of the static tie-break tuples (equal tuples share a rank)
+    let rank = |cmp: &dyn Fn(&Source, &Source) -> Ordering| -> Vec<u32> {
+        let mut idx: Vec<usize> = (0..sources.len()).collect();
+        idx.sort_by(|&a, &b| cmp(&sources[a], &sources[b]));
+        let mut r = vec![0u32; sources.len()];
+        let mut cur = 0u32;
+        for k in 0..idx.len() {
+            if k > 0 && cmp(&sources[idx[k - 1]], &sources[idx[k]]) != Ordering::Equal {
+                cur += 1;
+            }
+            r[idx[k]] = cur;
+        }
+        r
+    };
+    let fc = |a: f64, b: f64| a.partial_cmp(&b).unwrap_or(Ordering::Equal);
+    let r1 = rank(&|a, b| fc(a.duration, b.duration).then_with(|| fc(a.cap_need, b.cap_need)));
+    let r2 = rank(&|a, b| a.clip.cmp(&b.clip).then_with(|| fc(a.reload, b.reload)).then_with(|| a.inj.cmp(&b.inj)));
+    for &(si, t) in &initial {
+        heap.push(Ev { t, r1: r1[si as usize], shot: 0, r2: r2[si as usize], src: si, seq });
         seq += 1;
     }
     let period = if disable_period || period as f64 > t_max_ms { t_max_ms } else { period as f64 };
@@ -144,12 +172,14 @@ pub fn simulate(capacity: f64, recharge_ms: f64, drains: &[Drain], start_frac: f
     let mut awaiting_wrap: Vec<(u64, u64)> = Vec::new();
     let mut ran_out = false;
     let key = |v: &Vec<Ev>| {
-        let mut k: Vec<(u64, u64)> = v.iter().map(|e| (e.duration.to_bits(), e.cap_need.to_bits())).collect();
+        let mut k: Vec<(u64, u64)> = v.iter().map(|e| (sources[e.src as usize].duration.to_bits(), sources[e.src as usize].cap_need.to_bits())).collect();
         k.sort();
         k
     };
     let mut last_ev: Option<Ev> = None;
+    let mut exp_cache = [(0u64, 0.0f64, false); 64];
     while let Some(mut ev) = heap.pop() {
+        let sv = sources[ev.src as usize];
         let t_now = ev.t;
         if t_now >= t_max_ms {
             last_ev = Some(ev);
@@ -157,7 +187,15 @@ pub fn simulate(capacity: f64, recharge_ms: f64, drains: &[Drain], start_frac: f
         }
         if t_now > t_last && cap_max > 0.0 && tau > 0.0 {
             let x = (cap / cap_max).max(0.0).sqrt();
-            cap = (1.0 + (x - 1.0) * ((t_last - t_now) / tau).exp()).powi(2) * cap_max;
+            // exp of a repeated argument (event times are periodic): exact memo on the argument's bits
+            let arg = (t_last - t_now) / tau;
+            let slot = &mut exp_cache[(arg.to_bits() as usize ^ (arg.to_bits() >> 29) as usize) & 63];
+            let e = if slot.0 == arg.to_bits() && slot.2 { slot.1 } else {
+                let e = arg.exp();
+                *slot = (arg.to_bits(), e, true);
+                e
+            };
+            cap = (1.0 + (x - 1.0) * e).powi(2) * cap_max;
         }
         if t_now != t_last {
             if cap < cap_lowest_pre {
@@ -180,33 +218,35 @@ pub fn simulate(capacity: f64, recharge_ms: f64, drains: &[Drain], start_frac: f
             last_ev = Some(ev);
             break;
         }
-        if ev.inj && cap - ev.cap_need > cap_max {
+        if sv.inj && cap - sv.cap_need > cap_max {
             awaiting.push(ev);
             continue;
         }
-        if ev.cap_need > cap && cap < cap_max {
-            while !awaiting.is_empty() && ev.cap_need > cap && cap_max > cap {
-                let need = (ev.cap_need - cap).min(cap_max - cap);
-                let good: Vec<usize> = (0..awaiting.len()).filter(|&i| -awaiting[i].cap_need >= need).collect();
+        let cn = |e: &Ev| sources[e.src as usize].cap_need;
+        if sv.cap_need > cap && cap < cap_max {
+            while !awaiting.is_empty() && sv.cap_need > cap && cap_max > cap {
+                let need = (sv.cap_need - cap).min(cap_max - cap);
+                let good: Vec<usize> = (0..awaiting.len()).filter(|&i| -cn(&awaiting[i]) >= need).collect();
                 let pick = if !good.is_empty() {
-                    *good.iter().min_by(|&&a, &&b| (-awaiting[a].cap_need).partial_cmp(&-awaiting[b].cap_need).unwrap()).unwrap()
+                    *good.iter().min_by(|&&a, &&b| (-cn(&awaiting[a])).partial_cmp(&-cn(&awaiting[b])).unwrap()).unwrap()
                 } else {
-                    (0..awaiting.len()).max_by(|&a, &b| (-awaiting[a].cap_need).partial_cmp(&-awaiting[b].cap_need).unwrap()).unwrap()
+                    (0..awaiting.len()).max_by(|&a, &b| (-cn(&awaiting[a])).partial_cmp(&-cn(&awaiting[b])).unwrap()).unwrap()
                 };
                 let mut inj = awaiting.remove(pick);
-                cap = (cap - inj.cap_need).min(cap_max);
-                inj.t = t_now + inj.duration;
+                let is = sources[inj.src as usize];
+                cap = (cap - is.cap_need).min(cap_max);
+                inj.t = t_now + is.duration;
                 inj.shot += 1;
-                if inj.clip > 0 && inj.shot % inj.clip == 0 {
+                if is.clip > 0 && inj.shot % is.clip == 0 {
                     inj.shot = 0;
-                    inj.t += inj.reload;
+                    inj.t += is.reload;
                 }
                 inj.seq = seq;
                 seq += 1;
                 heap.push(inj);
             }
         }
-        cap = (cap - ev.cap_need).min(cap_max);
+        cap = (cap - sv.cap_need).min(cap_max);
         if cap < cap_lowest {
             if cap < 0.0 {
                 ran_out = true;
@@ -217,28 +257,29 @@ pub fn simulate(capacity: f64, recharge_ms: f64, drains: &[Drain], start_frac: f
         }
         while !awaiting.is_empty() && cap < cap_max {
             let need = cap_max - cap;
-            let good: Vec<usize> = (0..awaiting.len()).filter(|&i| -awaiting[i].cap_need <= need).collect();
+            let good: Vec<usize> = (0..awaiting.len()).filter(|&i| -cn(&awaiting[i]) <= need).collect();
             if good.is_empty() {
                 break;
             }
-            let pick = *good.iter().max_by(|&&a, &&b| (-awaiting[a].cap_need).partial_cmp(&-awaiting[b].cap_need).unwrap()).unwrap();
+            let pick = *good.iter().max_by(|&&a, &&b| (-cn(&awaiting[a])).partial_cmp(&-cn(&awaiting[b])).unwrap()).unwrap();
             let mut inj = awaiting.remove(pick);
-            cap = (cap - inj.cap_need).min(cap_max);
-            inj.t = t_now + inj.duration;
+            let is = sources[inj.src as usize];
+            cap = (cap - is.cap_need).min(cap_max);
+            inj.t = t_now + is.duration;
             inj.shot += 1;
-            if inj.clip > 0 && inj.shot % inj.clip == 0 {
+            if is.clip > 0 && inj.shot % is.clip == 0 {
                 inj.shot = 0;
-                inj.t += inj.reload;
+                inj.t += is.reload;
             }
             inj.seq = seq;
             seq += 1;
             heap.push(inj);
         }
-        ev.t = t_now + ev.duration;
+        ev.t = t_now + sv.duration;
         ev.shot += 1;
-        if ev.clip > 0 && ev.shot % ev.clip == 0 {
+        if sv.clip > 0 && ev.shot % sv.clip == 0 {
             ev.shot = 0;
-            ev.t += ev.reload;
+            ev.t += sv.reload;
         }
         ev.seq = seq;
         seq += 1;
@@ -249,7 +290,7 @@ pub fn simulate(capacity: f64, recharge_ms: f64, drains: &[Drain], start_frac: f
     if let Some(e) = last_ev {
         all.push(e);
     }
-    let avg_drain: f64 = all.iter().map(|e| e.cap_need / e.duration).sum();
+    let avg_drain: f64 = all.iter().map(|e| sources[e.src as usize].cap_need / sources[e.src as usize].duration).sum();
     let inner = -(2.0 * avg_drain * tau - cap_max) / cap_max;
     let eve_stable = if inner >= 0.0 && cap_max > 0.0 { 0.25 * (1.0 + inner.sqrt()).powi(2) } else { 0.0 };
     let stable = !ran_out;

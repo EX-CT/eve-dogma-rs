@@ -114,19 +114,24 @@ fn round6(v: f64) -> f64 {
 }
 
 /// Recursively round floats for stable, readable output.
-fn tidy(v: Value) -> Value {
+fn tidy(mut v: Value) -> Value {
+    tidy_mut(&mut v);
+    v
+}
+
+/// round every float to 6 decimals in place (no re-allocation of maps / arrays)
+fn tidy_mut(v: &mut Value) {
     match v {
         Value::Number(n) => {
-            if let Some(f) = n.as_f64() {
-                if n.is_f64() {
-                    return json!(round6(f));
+            if n.is_f64() {
+                if let Some(f) = n.as_f64() {
+                    *v = json!(round6(f));
                 }
             }
-            Value::Number(n)
         }
-        Value::Array(a) => Value::Array(a.into_iter().map(tidy).collect()),
-        Value::Object(o) => Value::Object(o.into_iter().map(|(k, v)| (k, tidy(v))).collect()),
-        x => x,
+        Value::Array(a) => a.iter_mut().for_each(tidy_mut),
+        Value::Object(o) => o.values_mut().for_each(tidy_mut),
+        _ => {}
     }
 }
 
