@@ -51,7 +51,7 @@ and compares 48 metrics. `WRITE_EXPECTED=1` freezes Pyfa's numbers into `tests/o
 which `cargo test` checks (no Python needed in CI).
 
 Current: **207/207 cases, 9 827 values match Pyfa** (rel. 1e-4) — 101 dogma-engine community/regression fits,
-24 hand-written fits (frigates → titans' little brothers: BS, HAC, T3C, T3D, marauders in bastion, logi,
+24 hand-written fits (frigates, cruisers, BS, HAC, T3C, T3D, marauders in bastion, logi,
 carriers/supercarrier fighters, command ships, mining), 82 JSON cases (skills 0/2/3/4, damage patterns, RAH
 profiles, reload, projected webs/TP/damps/web drones). 5 metrics are recorded as explained divergences
 (Pyfa data older than SDE, invalid fits, structure power state) — see `KNOWN` in `oracle/compare.py`.
