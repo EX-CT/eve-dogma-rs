@@ -1,0 +1,80 @@
+//! Parity test: every fit in tests/oracle/pyfa_expected.json (values produced by running Pyfa's eos
+//! engine as a black-box oracle, see oracle/compare.py) must match eve-dogma within tolerance.
+//! Needs the dataset: $EVE_DOGMA_DATASET or ./dataset.json.gz (CI downloads the release asset).
+use eve_dogma::{Dataset, calc, eft};
+use serde_json::Value;
+
+fn dataset() -> Option<Dataset> {
+    let p = std::env::var("EVE_DOGMA_DATASET").unwrap_or_else(|_| "dataset.json.gz".into());
+    if !std::path::Path::new(&p).exists() {
+        eprintln!("SKIP: dataset not found at {p}");
+        return None;
+    }
+    Some(Dataset::load_path(&p).expect("load dataset"))
+}
+
+fn close(a: &Value, b: &Value) -> bool {
+    match (a, b) {
+        (Value::Bool(x), Value::Bool(y)) => x == y,
+        (Value::Number(x), Value::Number(y)) => {
+            let (x, y) = (x.as_f64().unwrap(), y.as_f64().unwrap());
+            (x - y).abs() <= 1e-3_f64.max(1e-4 * y.abs())
+        }
+        (Value::Number(x), Value::Bool(y)) | (Value::Bool(y), Value::Number(x)) => (x.as_f64().unwrap() != 0.0) == *y,
+        _ => a == b,
+    }
+}
+
+#[test]
+fn matches_pyfa_oracle() {
+    let Some(ds) = dataset() else { return };
+    let exp: Value = serde_json::from_str(&std::fs::read_to_string("tests/oracle/pyfa_expected.json").unwrap()).unwrap();
+    let fits = exp["fits"].as_object().unwrap();
+    let mut failures = Vec::new();
+    let mut checked = 0;
+    for (name, f) in fits {
+        let text = std::fs::read_to_string(f["eft"].as_str().unwrap()).unwrap();
+        let mut req = eft::parse(&ds, &text).unwrap_or_else(|e| panic!("{name}: {e}"));
+        req.character.skills.default_level = Some(5);
+        let st = calc(&ds, &req);
+        for (ptr, want) in f["values"].as_object().unwrap() {
+            checked += 1;
+            let got = st.pointer(ptr).cloned().unwrap_or(Value::Null);
+            if !close(&got, want) {
+                failures.push(format!("{name} {ptr}: got {got} want {want}"));
+            }
+        }
+        if let Some(cs) = f.get("cap_state_percent") {
+            checked += 1;
+            let got = st.pointer("/capacitor/stable_percent").cloned().unwrap_or(Value::Null);
+            if !close(&got, cs) {
+                failures.push(format!("{name} cap: got {got} want {cs}"));
+            }
+        }
+    }
+    eprintln!("checked {checked} values over {} fits", fits.len());
+    assert!(failures.is_empty(), "{} mismatches:\n{}", failures.len(), failures.join("\n"));
+}
+
+#[test]
+fn deterministic_output() {
+    let Some(ds) = dataset() else { return };
+    let text = std::fs::read_to_string("tests/fits/esf_vexor.eft").unwrap();
+    let mut req = eft::parse(&ds, &text).unwrap();
+    req.character.skills.default_level = Some(5);
+    let a = serde_json::to_string(&calc(&ds, &req)).unwrap();
+    let b = serde_json::to_string(&calc(&ds, &req)).unwrap();
+    assert_eq!(a, b);
+}
+
+#[test]
+fn eft_roundtrip_with_mutations() {
+    let Some(ds) = dataset() else { return };
+    let text = std::fs::read_to_string("tests/fits/esf_mutations.eft").unwrap();
+    let req = eft::parse(&ds, &text).unwrap();
+    assert!(req.modules[0].mutation.is_some());
+    let out = eft::export(&ds, &req, "Mutations");
+    let req2 = eft::parse(&ds, &out).unwrap();
+    assert_eq!(serde_json::to_value(&req.modules).unwrap(), serde_json::to_value(&req2.modules).unwrap());
+    assert_eq!(serde_json::to_value(&req.drones).unwrap(), serde_json::to_value(&req2.drones).unwrap());
+}
