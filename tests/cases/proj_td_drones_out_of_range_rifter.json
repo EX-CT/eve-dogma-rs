@@ -1,0 +1,2 @@
+{"eft": "fits/exct_rifter.eft", "patch": {"projected": [
+  {"kind": "drone", "drone": {"type_id": 23725, "quantity": 3}, "amount": 1, "distance_m": 200000}]}}

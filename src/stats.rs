@@ -114,6 +114,28 @@ fn round6(v: f64) -> f64 {
 }
 
 /// Recursively round floats for stable, readable output.
+/// Pyfa eos.utils.float.floatUnerr: round away float noise, keeping 7 significant digits
+pub fn float_unerr7(v: f64) -> f64 {
+    if v == 0.0 || !v.is_finite() {
+        return v;
+    }
+    let rf = 7 - v.abs().log10().ceil() as i32;
+    if rf >= 0 {
+        format!("{:.*}", rf as usize, v).parse().unwrap_or(v)
+    } else {
+        let p = 10f64.powi(-rf);
+        (v / p).round() * p
+    }
+}
+
+/// Python round(v, 2) (correctly rounded, ties to even on the exact binary value)
+pub fn py_round2(v: f64) -> f64 {
+    if !v.is_finite() {
+        return v;
+    }
+    format!("{v:.2}").parse().unwrap_or(v)
+}
+
 fn tidy(mut v: Value) -> Value {
     tidy_mut(&mut v);
     v
@@ -317,7 +339,11 @@ impl<'a> Fit<'a> {
             let spool = self.items[i].spool.unwrap_or(default_spool);
             let (sp, _, _) = spoolup(g(i, "damageMultiplierBonusMax"), g(i, "damageMultiplierBonusPerCycle"), raw / 1000.0, spool);
             let vol_spooled = base.scale(1.0 + sp);
-            let dps = if cyc > 0.0 { vol_spooled.scale(1000.0 / cyc) } else { Dmg::default() };
+            // doomsdays / lances deal their volley every doomsdayDamageCycleTime during doomsdayDamageDuration
+            // (Pyfa getVolleyParameters subcycles; the Reaper slash hits once); volley = one tick
+            let (dd, dsub) = (g(i, "doomsdayDamageDuration"), g(i, "doomsdayDamageCycleTime"));
+            let subcycles = if dd != 0.0 && dsub != 0.0 && !self.has_effect_named(i, &["doomsdaySlash"]) { float_unerr7(dd / dsub).floor().max(0.0) } else { 1.0 };
+            let dps = if cyc > 0.0 { vol_spooled.scale(subcycles * 1000.0 / cyc) } else { Dmg::default() };
             w_vol.add(&vol_spooled); // Pyfa reports spooled volley
             w_dps.add(&dps);
             let opt = g(i, "maxRange");

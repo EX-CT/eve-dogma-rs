@@ -807,6 +807,10 @@ impl<'a> Fit<'a> {
                         continue;
                     }
                 }
+                // Pyfa 'active' handlers for SDE effects without modifiers (some are target-category in the SDE)
+                if e.mods.is_empty() && kind == Kind::Module && state >= State::Active && self.local_special(i, e.name.as_str(), src_cat) {
+                    continue;
+                }
                 if !state_ok(e.category, state) {
                     continue;
                 }
@@ -907,7 +911,7 @@ impl<'a> Fit<'a> {
     fn register_projected(&mut self, i: usize) {
         const DAMAGE_EFFECTS: &[&str] = &["projectileFired", "targetAttack", "useMissiles", "barrage", "targetDisintegratorAttack",
             "missileLaunchingForEntity", "fighterAbilityAttackM", "fighterAbilityMissiles", "superWeaponAmarr", "superWeaponCaldari",
-            "superWeaponGallente", "superWeaponMinmatar", "mining", "miningLaser", "miningClouds", "dotMissileLaunching", "ChainLightning"];
+            "superWeaponGallente", "superWeaponMinmatar", "mining", "miningLaser", "miningClouds", "dotMissileLaunching", "ChainLightning", "salvageDroneEffect"];
         let ds = self.ds;
         let src_cat = self.items[i].category;
         let state = self.items[i].state;
@@ -988,7 +992,7 @@ impl<'a> Fit<'a> {
             } else if name.starts_with("remoteSensorDamp") || name == "structureModuleEffectRemoteSensorDampener" {
                 push(self, ds.attr_id("maxTargetRange"), ds.attr_id("maxTargetRangeBonus"), 6);
                 push(self, ds.attr_id("scanResolution"), ds.attr_id("scanResolutionBonus"), 6);
-            } else if name == "shipModuleTrackingDisruptor" || name == "shipModuleGuidanceDisruptor" || name == "shipModuleRemoteTrackingComputer" {
+            } else if name == "shipModuleTrackingDisruptor" || name == "shipModuleGuidanceDisruptor" || name == "shipModuleRemoteTrackingComputer" || name == "npcEntityWeaponDisruptor" {
                 // Pyfa Effect6424 / Effect6423 / shipModuleRemoteTrackingComputer: boost the target's gunnery modules
                 // (TD, remote tracking computer) / missile charges (GD)
                 let allowed = if name == "shipModuleRemoteTrackingComputer" {
@@ -1003,7 +1007,11 @@ impl<'a> Fit<'a> {
                         ("Missile Launcher Operation", true, &[("aoeCloudSizeBonus", "aoeCloudSize"), ("aoeVelocityBonus", "aoeVelocity"), ("missileVelocityBonus", "maxVelocity"), ("explosionDelayBonus", "explosionDelay")])
                     };
                     let sk = ds.type_by_name(skill).unwrap_or(0);
-                    let tf = {
+                    let tf = if name == "npcEntityWeaponDisruptor" {
+                        // TD drones (Pyfa Effect6694): full strength inside maxRange, nothing beyond
+                        let it = &self.items[i];
+                        if it.base_opt(ds.attr_id("maxRange")).unwrap_or(0.0) < it.distance.unwrap_or(0.0) { 0.0 } else { 1.0 }
+                    } else {
                         let it = &self.items[i];
                         crate::stats::range_factor(it.base_opt(ds.attr_id("maxRange")).unwrap_or(0.0), it.base_opt(ds.attr_id("falloffEffectiveness")).unwrap_or(0.0), it.distance, true)
                     };
@@ -1035,6 +1043,56 @@ impl<'a> Fit<'a> {
                 self.warnings.push(format!("projected effect '{name}' not modelled yet"));
             }
         }
+    }
+
+    /// Local module effects that have no modifierInfo in the SDE but a hand-written Pyfa handler (eos/effects.py,
+    /// LGPL; re-expressed here). Returns true when the effect was handled. Category 6 as the source category marks
+    /// a boost Pyfa applies without stacking penalty.
+    fn local_special(&mut self, i: usize, name: &str, src_cat: u32) -> bool {
+        let ds = self.ds;
+        let ship = self.ship;
+        let a = |n: &str| ds.attr_id(n);
+        match name {
+            "superWeaponAmarr" | "superWeaponCaldari" | "superWeaponGallente" | "superWeaponMinmatar" | "doomsdaySlash"
+            | "doomsdayBeamDOT" | "doomsdayConeDOT" | "doomsdayHOG" | "debuffLance" => {
+                self.push_mod(ship, a("maxVelocity"), 6, Src::Attr { item: i, attr: a("speedFactor") }, i, src_cat);
+                self.push_mod(ship, a("warpScrambleStatus"), 2, Src::Attr { item: i, attr: a("siegeModeWarpStatus") }, i, src_cat);
+            }
+            "emergencyHullEnergizer" => {
+                for t in ["Em", "Thermal", "Kinetic", "Explosive"] {
+                    let tgt = a(&format!("{}DamageResonance", t.to_lowercase()));
+                    self.push_mod(ship, tgt, 4, Src::Attr { item: i, attr: a(&format!("hull{t}DamageResonance")) }, i, src_cat);
+                }
+            }
+            "entosisLink" => {
+                self.push_mod(ship, a("disallowAssistance"), 7, Src::Attr { item: i, attr: a("disallowAssistance") }, i, 6);
+                for t in ["Gravimetric", "Magnetometric", "Radar", "Ladar"] {
+                    self.push_mod(ship, a(&format!("scan{t}Strength")), 6, Src::Attr { item: i, attr: a(&format!("scan{t}StrengthPercent")) }, i, src_cat);
+                }
+            }
+            "microJumpPortalDrive" | "microJumpPortalDriveCapital" => {
+                self.push_mod(ship, a("signatureRadius"), 6, Src::Attr { item: i, attr: a("signatureRadiusBonusPercent") }, i, src_cat);
+            }
+            "warpDisruptSphere" => {
+                self.push_mod(ship, a("disallowAssistance"), 7, Src::Const(1.0), i, 6);
+                if self.items[i].charge.is_none() {
+                    self.push_mod(ship, 4, 6, Src::Attr { item: i, attr: a("massBonusPercentage") }, i, 6);
+                    self.push_mod(ship, a("signatureRadius"), 6, Src::Attr { item: i, attr: a("signatureRadiusBonus") }, i, 6);
+                    let props: Vec<usize> = (0..self.items.len())
+                        .filter(|&t| {
+                            let it = &self.items[t];
+                            it.kind == Kind::Module && it.loc == Loc::Ship && ds.groups.get(&it.group).map(|g| g.name == "Propulsion Module").unwrap_or(false)
+                        })
+                        .collect();
+                    for t in props {
+                        self.push_mod(t, a("speedBoostFactor"), 6, Src::Attr { item: i, attr: a("speedBoostFactorBonus") }, i, 6);
+                        self.push_mod(t, a("speedFactor"), 6, Src::Attr { item: i, attr: a("speedFactorBonus") }, i, 6);
+                    }
+                }
+            }
+            _ => return false,
+        }
+        true
     }
 
     /// Pyfa's 'projected' handlers for remote reps, cap transfers and neuts/nos (eos/effects.py, LGPL).
@@ -1322,7 +1380,7 @@ impl<'a> Fit<'a> {
             val = val.min(self.get(item, mx));
         }
         if info.round2 {
-            val = (val * 100.0).round() / 100.0;
+            val = crate::stats::py_round2(val);
         }
         val
     }
@@ -1438,7 +1496,7 @@ impl<'a> Fit<'a> {
                 val = val.min(self.get(item, mx));
             }
             if info.round2 {
-                val = (val * 100.0).round() / 100.0;
+                val = crate::stats::py_round2(val);
             }
         }
         a.busy.set(false);
