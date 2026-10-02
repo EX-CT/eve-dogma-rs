@@ -10751,6 +10751,65 @@
     "/targeting/sensor_strength": 13.2
    }
   },
+  "exct_scythe_rtc": {
+   "cap_state_percent": 88.88809005941916,
+   "eft": "tests/fits/exct_scythe_rtc.eft",
+   "values": {
+    "/capacitor/capacity": 2187.5,
+    "/capacitor/recharge_time_s": 262.5,
+    "/capacitor/stable": true,
+    "/defense/ehp/armor": 2396.5141612200437,
+    "/defense/ehp/hull": 4042.2885572139303,
+    "/defense/ehp/shield": 2758.620689655172,
+    "/defense/hp/armor": 1375.0,
+    "/defense/hp/hull": 1625.0,
+    "/defense/hp/shield": 1750.0,
+    "/defense/resonance/armor/em": 0.34,
+    "/defense/resonance/armor/explosive": 0.765,
+    "/defense/resonance/armor/kinetic": 0.6375,
+    "/defense/resonance/armor/thermal": 0.5525,
+    "/defense/resonance/hull/em": 0.402,
+    "/defense/resonance/hull/explosive": 0.402,
+    "/defense/resonance/hull/kinetic": 0.402,
+    "/defense/resonance/hull/thermal": 0.402,
+    "/defense/resonance/shield/em": 0.875,
+    "/defense/resonance/shield/explosive": 0.4375,
+    "/defense/resonance/shield/kinetic": 0.525,
+    "/defense/resonance/shield/thermal": 0.7000000000000001,
+    "/defense/tank/raw/armor_repair": 0,
+    "/defense/tank/raw/hull_repair": 0,
+    "/defense/tank/raw/passive_shield": 4.666666666666666,
+    "/defense/tank/raw/shield_repair": 0,
+    "/defense/tank/sustained/armor_repair": 0,
+    "/defense/tank/sustained/hull_repair": 0,
+    "/defense/tank/sustained/shield_repair": 0,
+    "/drones/control_range_m": 60000.0,
+    "/navigation/align_time_s": 5.925815752948154,
+    "/navigation/mass": 11110000.0,
+    "/navigation/max_velocity": 325.0,
+    "/navigation/signature_radius": 75.0,
+    "/navigation/warp_scramble_status": 0.0,
+    "/navigation/warp_speed_au_s": 4.0,
+    "/offense/total/drone_dps+/offense/total/fighter_dps": 0,
+    "/offense/total/drone_volley+/offense/total/fighter_volley": 0,
+    "/offense/total/weapon_dps": 0.0,
+    "/offense/total/weapon_volley": 0.0,
+    "/resources/calibration/used": 0.0,
+    "/resources/cpu/total": 375.0,
+    "/resources/cpu/used": 138.0,
+    "/resources/drone_bandwidth/used": 0,
+    "/resources/power/total": 468.75,
+    "/resources/power/used": 4.0,
+    "/resources/slots/high/total": 3.0,
+    "/resources/slots/low/total": 5.0,
+    "/resources/slots/mid/total": 5.0,
+    "/targeting/jam_chance_percent": 0,
+    "/targeting/max_range_m": 65625.0,
+    "/targeting/max_targets": 8,
+    "/targeting/scan_resolution": 393.75,
+    "/targeting/sensor_strength": 14.399999999999999
+   }
+  },
   "exct_stiletto": {
    "cap_state_percent": 38.05284911927822,
    "eft": "tests/fits/exct_stiletto.eft",
@@ -16709,6 +16768,170 @@
     "/targeting/max_targets": 6,
     "/targeting/scan_resolution": 262.5,
     "/targeting/sensor_strength": 24.0
+   }
+  },
+  "projfit_scythe_rtc_x2_on_rifter": {
+   "cap_state_percent": 83.49598710843377,
+   "eft": "tests/fits/exct_rifter.eft",
+   "request_patch": {
+    "projected": [
+     {
+      "amount": 2,
+      "distance_m": 12000,
+      "fit": {
+       "boosters": [],
+       "cargo": [],
+       "character": {
+        "security_status": null,
+        "skills": {
+         "default_level": 5,
+         "levels": {}
+        }
+       },
+       "damage_pattern": null,
+       "drones": [],
+       "environment": {
+        "effect_type_ids": [],
+        "system_security": null
+       },
+       "fighters": [],
+       "fleet": {
+        "booster_fits": [],
+        "buffs": []
+       },
+       "implants": [],
+       "modules": [
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "low",
+         "spool": null,
+         "state": "active",
+         "type_id": 2048
+        },
+        {
+         "charge_type_id": 28999,
+         "mutation": null,
+         "slot": "mid",
+         "spool": null,
+         "state": "active",
+         "type_id": 2104
+        },
+        {
+         "charge_type_id": 29001,
+         "mutation": null,
+         "slot": "mid",
+         "spool": null,
+         "state": "active",
+         "type_id": 2104
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "mid",
+         "spool": null,
+         "state": "active",
+         "type_id": 2104
+        }
+       ],
+       "options": {
+        "cap_sim": {
+         "max_time_s": null,
+         "reload": false,
+         "stagger": false
+        },
+        "default_spool": null,
+        "factor_reload": false,
+        "include_attributes": null,
+        "nos_no_target_cap": false,
+        "rah": null,
+        "sources": false,
+        "validate": true
+       },
+       "overrides": [],
+       "projected": [],
+       "schema_version": 1,
+       "ship": {
+        "mode_type_id": null,
+        "type_id": 631
+       },
+       "target_profile": null
+      },
+      "kind": "fit"
+     }
+    ]
+   },
+   "values": {
+    "/capacitor/capacity": 312.5,
+    "/capacitor/recharge_time_s": 93.75,
+    "/capacitor/stable": true,
+    "/defense/ehp/armor": 2589.715131335553,
+    "/defense/ehp/hull": 1088.3084577114428,
+    "/defense/ehp/shield": 886.6995073891625,
+    "/defense/hp/armor": 1312.5,
+    "/defense/hp/hull": 437.5,
+    "/defense/hp/shield": 562.5,
+    "/defense/resonance/armor/em": 0.34,
+    "/defense/resonance/armor/explosive": 0.49725,
+    "/defense/resonance/armor/kinetic": 0.6375,
+    "/defense/resonance/armor/thermal": 0.5525,
+    "/defense/resonance/hull/em": 0.402,
+    "/defense/resonance/hull/explosive": 0.402,
+    "/defense/resonance/hull/kinetic": 0.402,
+    "/defense/resonance/hull/thermal": 0.402,
+    "/defense/resonance/shield/em": 0.875,
+    "/defense/resonance/shield/explosive": 0.4375,
+    "/defense/resonance/shield/kinetic": 0.525,
+    "/defense/resonance/shield/thermal": 0.7000000000000001,
+    "/defense/tank/raw/armor_repair": 0,
+    "/defense/tank/raw/hull_repair": 0,
+    "/defense/tank/raw/passive_shield": 3.0,
+    "/defense/tank/raw/shield_repair": 0,
+    "/defense/tank/sustained/armor_repair": 0,
+    "/defense/tank/sustained/hull_repair": 0,
+    "/defense/tank/sustained/shield_repair": 0,
+    "/drones/control_range_m": 60000.0,
+    "/navigation/align_time_s": 5.245170868083969,
+    "/navigation/mass": 1668250.0,
+    "/navigation/max_velocity": 1148.5220290723812,
+    "/navigation/signature_radius": 35.0,
+    "/navigation/warp_scramble_status": 0.0,
+    "/navigation/warp_speed_au_s": 5.0,
+    "/offense/drones[drone_index=0]/falloff_m": 2000.0,
+    "/offense/drones[drone_index=0]/max_velocity": 6300.0,
+    "/offense/drones[drone_index=0]/optimal_m": 2625.0,
+    "/offense/drones[drone_index=0]/signature_radius": 25.0,
+    "/offense/drones[drone_index=0]/tracking": 3.24,
+    "/offense/total/drone_dps+/offense/total/fighter_dps": 32.175000000000004,
+    "/offense/total/drone_volley+/offense/total/fighter_volley": 128.70000000000002,
+    "/offense/total/weapon_dps": 243.12956327613847,
+    "/offense/total/weapon_volley": 354.06575289370556,
+    "/offense/weapons[module_index=6]/falloff_m": 17944.680571464756,
+    "/offense/weapons[module_index=6]/optimal_m": 1038.2390950462643,
+    "/offense/weapons[module_index=6]/tracking": 730.3067674433331,
+    "/offense/weapons[module_index=7]/falloff_m": 17944.680571464756,
+    "/offense/weapons[module_index=7]/optimal_m": 1038.2390950462643,
+    "/offense/weapons[module_index=7]/tracking": 730.3067674433331,
+    "/offense/weapons[module_index=8]/falloff_m": 17944.680571464756,
+    "/offense/weapons[module_index=8]/optimal_m": 1038.2390950462643,
+    "/offense/weapons[module_index=8]/tracking": 730.3067674433331,
+    "/offense/weapons[module_index=9]/explosion_radius": 25.5,
+    "/offense/weapons[module_index=9]/explosion_velocity": 193.5,
+    "/offense/weapons[module_index=9]/range_m": 8436.765294824345,
+    "/resources/calibration/used": 675.0,
+    "/resources/cpu/total": 162.5,
+    "/resources/cpu/used": 190.0,
+    "/resources/drone_bandwidth/used": 10.0,
+    "/resources/power/total": 51.25,
+    "/resources/power/used": 42.51,
+    "/resources/slots/high/total": 3.0,
+    "/resources/slots/low/total": 4.0,
+    "/resources/slots/mid/total": 3.0,
+    "/targeting/jam_chance_percent": 0,
+    "/targeting/max_range_m": 28125.0,
+    "/targeting/max_targets": 4,
+    "/targeting/scan_resolution": 825.0,
+    "/targeting/sensor_strength": 9.6
    }
   },
   "projfit_svipul_on_vexor": {

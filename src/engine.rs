@@ -907,7 +907,7 @@ impl<'a> Fit<'a> {
     fn register_projected(&mut self, i: usize) {
         const DAMAGE_EFFECTS: &[&str] = &["projectileFired", "targetAttack", "useMissiles", "barrage", "targetDisintegratorAttack",
             "missileLaunchingForEntity", "fighterAbilityAttackM", "fighterAbilityMissiles", "superWeaponAmarr", "superWeaponCaldari",
-            "superWeaponGallente", "superWeaponMinmatar", "mining", "miningLaser", "miningClouds", "dotMissileLaunching"];
+            "superWeaponGallente", "superWeaponMinmatar", "mining", "miningLaser", "miningClouds", "dotMissileLaunching", "ChainLightning"];
         let ds = self.ds;
         let src_cat = self.items[i].category;
         let state = self.items[i].state;
@@ -988,10 +988,16 @@ impl<'a> Fit<'a> {
             } else if name.starts_with("remoteSensorDamp") || name == "structureModuleEffectRemoteSensorDampener" {
                 push(self, ds.attr_id("maxTargetRange"), ds.attr_id("maxTargetRangeBonus"), 6);
                 push(self, ds.attr_id("scanResolution"), ds.attr_id("scanResolutionBonus"), 6);
-            } else if name == "shipModuleTrackingDisruptor" || name == "shipModuleGuidanceDisruptor" {
-                // Pyfa Effect6424 / Effect6423: boost the target's gunnery modules / missile charges
-                if target_offense_ok {
-                    let (skill, charges, pairs): (&str, bool, &[(&str, &str)]) = if name == "shipModuleTrackingDisruptor" {
+            } else if name == "shipModuleTrackingDisruptor" || name == "shipModuleGuidanceDisruptor" || name == "shipModuleRemoteTrackingComputer" {
+                // Pyfa Effect6424 / Effect6423 / shipModuleRemoteTrackingComputer: boost the target's gunnery modules
+                // (TD, remote tracking computer) / missile charges (GD)
+                let allowed = if name == "shipModuleRemoteTrackingComputer" {
+                    self.items[ship].base_opt(ds.attr_id("disallowAssistance")).map(|a| a == 0.0).unwrap_or(true)
+                } else {
+                    target_offense_ok
+                };
+                if allowed {
+                    let (skill, charges, pairs): (&str, bool, &[(&str, &str)]) = if name != "shipModuleGuidanceDisruptor" {
                         ("Gunnery", false, &[("trackingSpeedBonus", "trackingSpeed"), ("maxRangeBonus", "maxRange"), ("falloffBonus", "falloff")])
                     } else {
                         ("Missile Launcher Operation", true, &[("aoeCloudSizeBonus", "aoeCloudSize"), ("aoeVelocityBonus", "aoeVelocity"), ("missileVelocityBonus", "maxVelocity"), ("explosionDelayBonus", "explosionDelay")])
