@@ -213,6 +213,9 @@ pub struct WellKnown {
     pub published_skills: Vec<u32>,
     /// tactical destroyer modes (group 1306): (type id, lowercase name), ascending by id
     pub mode_types: Vec<(u32, String)>,
+    /// type ids of the Gunnery and Missile Launcher Operation skills (0 if absent)
+    pub skill_gunnery: u32,
+    pub skill_mls: u32,
 }
 
 // ---------- raw serde shapes ----------
@@ -537,6 +540,8 @@ impl Dataset {
                     v.sort_unstable();
                     v
                 },
+                skill_gunnery: d.type_by_name("Gunnery").unwrap_or(0),
+                skill_mls: d.type_by_name("Missile Launcher Operation").unwrap_or(0),
             };
             d
         })

@@ -1174,7 +1174,7 @@ impl<'a> Fit<'a> {
                         let it = &self.items[i];
                         crate::stats::range_factor(it.base_opt(ds.attr_id("maxRange")).unwrap_or(0.0), it.base_opt(ds.attr_id("falloffEffectiveness")).unwrap_or(0.0), it.distance, true)
                     };
-                    let (gun, mls) = (ds.type_by_name("Gunnery").unwrap_or(0), ds.type_by_name("Missile Launcher Operation").unwrap_or(0));
+                    let (gun, mls) = (ds.wk.skill_gunnery, ds.wk.skill_mls);
                     let n = self.items.len();
                     for t in 0..n {
                         let it = &self.items[t];
@@ -1202,12 +1202,12 @@ impl<'a> Fit<'a> {
                     target_offense_ok
                 };
                 if allowed {
-                    let (skill, charges, pairs): (&str, bool, &[(&str, &str)]) = if name != "shipModuleGuidanceDisruptor" {
-                        ("Gunnery", false, &[("trackingSpeedBonus", "trackingSpeed"), ("maxRangeBonus", "maxRange"), ("falloffBonus", "falloff")])
+                    let (charges, pairs): (bool, &[(&str, &str)]) = if name != "shipModuleGuidanceDisruptor" {
+                        (false, &[("trackingSpeedBonus", "trackingSpeed"), ("maxRangeBonus", "maxRange"), ("falloffBonus", "falloff")])
                     } else {
-                        ("Missile Launcher Operation", true, &[("aoeCloudSizeBonus", "aoeCloudSize"), ("aoeVelocityBonus", "aoeVelocity"), ("missileVelocityBonus", "maxVelocity"), ("explosionDelayBonus", "explosionDelay")])
+                        (true, &[("aoeCloudSizeBonus", "aoeCloudSize"), ("aoeVelocityBonus", "aoeVelocity"), ("missileVelocityBonus", "maxVelocity"), ("explosionDelayBonus", "explosionDelay")])
                     };
-                    let sk = ds.type_by_name(skill).unwrap_or(0);
+                    let sk = if charges { ds.wk.skill_mls } else { ds.wk.skill_gunnery };
                     let tf = if name == "npcEntityWeaponDisruptor" {
                         // TD drones (Pyfa Effect6694): full strength inside maxRange, nothing beyond
                         let it = &self.items[i];
@@ -1307,8 +1307,7 @@ impl<'a> Fit<'a> {
         let a = |n: &str| ds.attr_id(n);
         let ship = self.ship;
         let red = a("systemEffectDamageReduction");
-        let mls = ds.type_by_name("Missile Launcher Operation").unwrap_or(0);
-        let gunnery = ds.type_by_name("Gunnery").unwrap_or(0);
+        let (mls, gunnery) = (ds.wk.skill_mls, ds.wk.skill_gunnery);
         let smartbomb = ds.groups.iter().find(|(_, g)| g.name == "Smart Bomb").map(|(k, _)| *k).unwrap_or(0);
         let n = self.items.len();
         for t in 0..n {
