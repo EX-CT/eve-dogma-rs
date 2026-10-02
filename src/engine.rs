@@ -215,8 +215,8 @@ fn default_fighter_abilities(ds: &Dataset, effects: &[(u32, bool)]) -> Vec<u32> 
 
 /// Skills required by any item of the request and the groups present (for skill pruning).
 fn fit_skill_context(ds: &Dataset, req: &FitRequest) -> (rustc_hash::FxHashSet<u32>, rustc_hash::FxHashSet<u32>) {
-    let mut need = rustc_hash::FxHashSet::default();
-    let mut groups = rustc_hash::FxHashSet::default();
+    let mut need = rustc_hash::FxHashSet::with_capacity_and_hasher(128, Default::default());
+    let mut groups = rustc_hash::FxHashSet::with_capacity_and_hasher(64, Default::default());
     let mut add = |tid: u32| {
         if let Some(t) = ds.types.get(&tid) {
             groups.insert(t.group);
@@ -268,7 +268,7 @@ fn fit_skill_context(ds: &Dataset, req: &FitRequest) -> (rustc_hash::FxHashSet<u
 /// the ship does not have and nothing else touches: they cannot change any computed stat (only the
 /// `include_attributes` listing, so the pruning is off when attributes are requested).
 pub(crate) fn ship_touched(ds: &Dataset, req: &FitRequest) -> rustc_hash::FxHashSet<u32> {
-    let mut out = rustc_hash::FxHashSet::default();
+    let mut out = rustc_hash::FxHashSet::with_capacity_and_hasher(128, Default::default());
     let add = |tid: u32, out: &mut rustc_hash::FxHashSet<u32>| {
         if let Some(t) = ds.types.get(&tid) {
             for (eid, _) in t.effects.iter() {
@@ -414,7 +414,8 @@ impl<'a> Fit<'a> {
             quantity: 1,
             active_count: 0,
             tattrs: &t.attrs,
-            attrs: FxHashMap::default(),
+            // modules / charges / drones typically get up to ~28 modified attributes: avoid the rehash steps
+            attrs: if matches!(kind, Kind::Module | Kind::Charge | Kind::Drone) { FxHashMap::with_capacity_and_hasher(28, Default::default()) } else { FxHashMap::default() },
             req_skills: std::borrow::Cow::Borrowed(&t.req_skills),
             effects: std::borrow::Cow::Borrowed(&t.effects),
             fighter_abilities: None,
