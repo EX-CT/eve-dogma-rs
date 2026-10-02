@@ -119,6 +119,8 @@ pub struct Fit<'a> {
     pub proj_special: Vec<ProjSpecial>,
     /// target index for location/group/skill filtered modifiers (built once the item set is final)
     tindex: Option<TIndex>,
+    /// see `ship_touched`; None = no pruning (attributes requested)
+    ship_touched: Option<rustc_hash::FxHashSet<u32>>,
 }
 
 #[derive(Default)]
@@ -261,8 +263,88 @@ fn fit_skill_context(ds: &Dataset, req: &FitRequest) -> (rustc_hash::FxHashSet<u
     (need, groups)
 }
 
+/// Ship attributes that something other than a skill may modify (any type in the request, incl. projected and
+/// environment items, plus every warfare buff's ship attributes). Used to drop skill modifiers onto ship attributes
+/// the ship does not have and nothing else touches: they cannot change any computed stat (only the
+/// `include_attributes` listing, so the pruning is off when attributes are requested).
+pub(crate) fn ship_touched(ds: &Dataset, req: &FitRequest) -> rustc_hash::FxHashSet<u32> {
+    let mut out = rustc_hash::FxHashSet::default();
+    let mut add = |tid: u32, out: &mut rustc_hash::FxHashSet<u32>| {
+        if let Some(t) = ds.types.get(&tid) {
+            for (eid, _) in t.effects.iter() {
+                if let Some(e) = ds.effects.get(eid) {
+                    for m in &e.mods {
+                        if m.func == Func::Item && !matches!(m.domain, Domain::Item) {
+                            out.insert(m.modified);
+                        }
+                    }
+                }
+            }
+        }
+    };
+    fn walk(req: &FitRequest, f: &mut dyn FnMut(u32)) {
+        f(req.ship.type_id);
+        if let Some(m) = req.ship.mode_type_id {
+            f(m);
+        }
+        for m in &req.modules {
+            f(m.type_id);
+            if let Some(c) = m.charge_type_id {
+                f(c);
+            }
+            if let Some(mu) = &m.mutation {
+                f(mu.base_type_id);
+            }
+        }
+        for d in &req.drones {
+            f(d.type_id);
+        }
+        for x in &req.fighters {
+            f(x.type_id);
+        }
+        for i in &req.implants {
+            f(*i);
+        }
+        for b in &req.boosters {
+            f(b.type_id);
+        }
+        for e in &req.environment.effect_type_ids {
+            f(*e);
+        }
+        for p in &req.projected {
+            if let Some(m) = &p.module {
+                f(m.type_id);
+                if let Some(c) = m.charge_type_id {
+                    f(c);
+                }
+            }
+            if let Some(d) = &p.drone {
+                f(d.type_id);
+            }
+            if let Some(x) = &p.fighter {
+                f(x.type_id);
+            }
+            if let Some(pf) = &p.fit {
+                walk(pf, f);
+            }
+        }
+        for bf in &req.fleet.booster_fits {
+            walk(bf, f);
+        }
+    }
+    let mut ids = Vec::new();
+    walk(req, &mut |t| ids.push(t));
+    for t in ids {
+        add(t, &mut out);
+    }
+    for (_, b) in ds.dbuffs.iter() {
+        out.extend(b.item.iter().copied());
+    }
+    out
+}
+
 /// Can any modifier of skill `s` reach an item of this fit? Conservative: unknown shapes count as relevant.
-fn skill_relevant(ds: &Dataset, s: u32, need: &rustc_hash::FxHashSet<u32>, groups: &rustc_hash::FxHashSet<u32>) -> bool {
+fn skill_relevant(ds: &Dataset, s: u32, need: &rustc_hash::FxHashSet<u32>, groups: &rustc_hash::FxHashSet<u32>, prune: Option<(&TypeInfo, &rustc_hash::FxHashSet<u32>)>) -> bool {
     if need.contains(&s) {
         return true;
     }
@@ -277,7 +359,17 @@ fn skill_relevant(ds: &Dataset, s: u32, need: &rustc_hash::FxHashSet<u32>, group
         }
         for m in &e.mods {
             let hit = match m.func {
-                Func::Item | Func::Location | Func::EffectStopper => true,
+                Func::Item => match prune {
+                    // self-modifiers only matter to the skill's own other effects; ship attributes that the ship
+                    // lacks and nothing else touches cannot affect a stat
+                    Some((ship, touched)) => match m.domain {
+                        Domain::Item => false,
+                        Domain::Ship => ship.attr(m.modified).is_some() || touched.contains(&m.modified),
+                        _ => true,
+                    },
+                    None => true,
+                },
+                Func::Location | Func::EffectStopper => true,
                 Func::LocationGroup => groups.contains(&m.extra) || ds.groups.get(&m.extra).map(|g| g.category == 16).unwrap_or(true),
                 Func::LocationRequiredSkill | Func::OwnerRequiredSkill => need.contains(&if m.extra == 0 { s } else { m.extra }),
             };
@@ -407,7 +499,7 @@ impl<'a> Fit<'a> {
 
     /// Build the object graph for a request. Does not evaluate anything.
     pub fn build(ds: &'a Dataset, req: &FitRequest) -> Result<Fit<'a>, EngineError> {
-        let mut fit = Fit { ds, items: Vec::with_capacity(512), ship: 0, char: 0, warnings: Vec::new(), is_structure: false, proj_special: Vec::new(), tindex: None };
+        let mut fit = Fit { ds, items: Vec::with_capacity(512), ship: 0, char: 0, warnings: Vec::new(), is_structure: false, proj_special: Vec::new(), tindex: None, ship_touched: None };
         let ship = fit.new_item(req.ship.type_id, Kind::Ship, Loc::Ship, "/ship/type_id")?;
         fit.ship = ship;
         fit.is_structure = fit.items[ship].category == 65;
@@ -439,18 +531,25 @@ impl<'a> Fit<'a> {
         let mut lv: Vec<(u32, u8)> = levels.into_iter().collect();
         lv.sort();
         let (need, groups) = fit_skill_context(ds, req);
+        let touched = if req.options.include_attributes.is_none() { Some(ship_touched(ds, req)) } else { None };
+        let ship_t = ds.types.get(&req.ship.type_id);
+        let prune = match (&touched, ship_t) {
+            (Some(t), Some(st)) => Some((st, t)),
+            _ => None,
+        };
         for (s, l) in lv {
             if !ds.types.contains_key(&s) {
                 continue;
             }
             // perf: a skill whose modifiers can reach nothing in this fit is not instantiated (same results)
-            if !skill_relevant(ds, s, &need, &groups) {
+            if !skill_relevant(ds, s, &need, &groups, prune) {
                 continue;
             }
             let idx = fit.new_item(s, Kind::Skill, Loc::Char, "/character/skills")?;
             fit.items[idx].attrs.insert(ATTR_SKILL_LEVEL, Attr::new(l.min(5) as f64));
             fit.items[idx].owned = false;
         }
+        fit.ship_touched = touched;
         // Tactical destroyers must have a mode: default to the first (lowest type id) like Pyfa / the client.
         let mode_id = req.ship.mode_type_id.or_else(|| {
             let ship_name = ds.types.get(&req.ship.type_id)?.name.to_lowercase();
@@ -916,6 +1015,14 @@ impl<'a> Fit<'a> {
                         // self-modifier (most skill effects): no target list needed
                         self.push_mod(i, m.modified, m.op, Src::Attr { item: i, attr: m.modifying }, i, cat);
                         continue;
+                    }
+                    if kind == Kind::Skill && m.func == Func::Item && m.domain == Domain::Ship {
+                        let ship = self.ship;
+                        if let Some(t) = &self.ship_touched {
+                            if self.items[ship].tbase(m.modified).is_none() && !t.contains(&m.modified) {
+                                continue; // see `ship_touched`
+                            }
+                        }
                     }
                     let targets = self.targets(i, m.func, m.domain, extra);
                     for t in targets {
