@@ -100,3 +100,7 @@ Conventions matching Pyfa (deliberate): volley is spooled; local nosferatu is ca
   flight-time bonus, acceleration, floor/ceil blend, FoF limit, centre-to-surface) instead of velocity × flight time.
   Semantic change of one field (not a shape change). Turret optimal/falloff/tracking and missile range/explosion
   radius/velocity are now oracle-verified per weapon (selector pointers `/offense/weapons[module_index=N]/field`).
+- v1.4 (2026-10-03): `defense.tank.sustained{,_effective}` (Pyfa `sustainableTank`: when the cap is unstable or reload
+  is factored, local cap-using repairers run only as far as peak recharge + injected cap allow). `capacitor.use_gj_s`
+  / `injected_gj_s` now include incoming drains/fills, and capacitor boosters' average cycle always includes reload
+  (Pyfa `forceReload`). Additive / semantic refinement.

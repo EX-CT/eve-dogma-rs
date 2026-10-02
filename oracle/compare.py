@@ -24,6 +24,7 @@ def ours(st):
         "scan_resolution": t["scan_resolution"], "scan_strength": t["sensor_strength"],
         "tank.armor": d["tank"]["raw"]["armor_repair"], "tank.shield": d["tank"]["raw"]["shield_repair"],
         "tank.hull": d["tank"]["raw"]["hull_repair"], "tank.passive": d["tank"]["raw"]["passive_shield"],
+        **{f"stank.{k}": d["tank"]["sustained"][v] for k, v in (("armor", "armor_repair"), ("shield", "shield_repair"), ("hull", "hull_repair"))},
         "hi_slots": r["slots"]["high"]["total"], "med_slots": r["slots"]["mid"]["total"], "low_slots": r["slots"]["low"]["total"],
         **{f"w{w['module_index']}.{k}": w.get(k) for w in st["offense"]["weapons"] for k in WFIELDS},
     }
@@ -46,6 +47,9 @@ def pyfa(s):
             if k in w and w[k] is not None:
                 out[f"w{w['module_index']}.{k}"] = w[k]
                 PTR[f"w{w['module_index']}.{k}"] = f"/offense/weapons[module_index={w['module_index']}]/{k}"
+    st_ = s.get("sustainable_tank")
+    if st_:
+        out.update({"stank.armor": st_["armorRepair"], "stank.shield": st_["shieldRepair"], "stank.hull": st_["hullRepair"]})
     cs = s["cap_state"]
     out["cap_state"] = cs if s["cap_stable"] else cs
     return out
@@ -67,6 +71,8 @@ PTR = {
     "max_targets": "/targeting/max_targets", "max_target_range": "/targeting/max_range_m",
     "scan_resolution": "/targeting/scan_resolution", "scan_strength": "/targeting/sensor_strength",
     "tank.armor": "/defense/tank/raw/armor_repair", "tank.shield": "/defense/tank/raw/shield_repair",
+    "stank.armor": "/defense/tank/sustained/armor_repair", "stank.shield": "/defense/tank/sustained/shield_repair",
+    "stank.hull": "/defense/tank/sustained/hull_repair",
     "tank.hull": "/defense/tank/raw/hull_repair", "tank.passive": "/defense/tank/raw/passive_shield",
     "hi_slots": "/resources/slots/high/total", "med_slots": "/resources/slots/mid/total", "low_slots": "/resources/slots/low/total",
 }

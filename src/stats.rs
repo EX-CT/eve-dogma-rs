@@ -514,7 +514,7 @@ impl<'a> Fit<'a> {
         }
         let shield_rr_s = g(ship, "shieldRechargeRate") / 1000.0;
         let passive = if shield_rr_s > 0.0 { 10.0 / shield_rr_s * 0.5 * 0.5 * hp_s } else { 0.0 };
-        let defense = json!({
+        let mut defense = json!({
             "hp": {"shield": hp_s, "armor": hp_a, "hull": hp_h, "total": hp_s + hp_a + hp_h},
             "resonance": {"shield": res_json(rs), "armor": res_json(ra), "hull": res_json(rh)},
             "ehp": {"shield": e_s, "armor": e_a, "hull": e_h, "total": e_s + e_a + e_h},
@@ -554,7 +554,8 @@ impl<'a> Fit<'a> {
                 row["cycle_time_ms"] = json!(cyc_raw);
             }
             if active(i) && cap_need != 0.0 && full > 0.0 {
-                let avg = self.avg_cycle_ms(i, &id, factor_reload);
+                // Pyfa forces reload into capacitor boosters' average cycle (module.forceReload)
+                let avg = self.avg_cycle_ms(i, &id, factor_reload || is_inj);
                 let use_ = if avg > 0.0 { cap_need / (avg / 1000.0) } else { 0.0 };
                 if use_ > 0.0 { cap_used += use_ } else { cap_added -= use_ }
                 row["cap_use_gj_s"] = json!(use_);
@@ -583,6 +584,7 @@ impl<'a> Fit<'a> {
                 }
                 let dur = self.get(item, duration);
                 if need != 0.0 && dur > 0.0 {
+                    if need > 0.0 { cap_used += need / (dur.trunc() / 1000.0) } else { cap_added -= need / (dur.trunc() / 1000.0) }
                     drains.push(Drain { duration: dur.trunc(), cap_need: need, clip_size: 0, reload_ms: 0.0, is_injector: false, disable_stagger: false });
                 }
             }
@@ -604,6 +606,92 @@ impl<'a> Fit<'a> {
             }
             capj["eve_stable_percent"] = json!(r.eve_stable * 100.0);
             capj["sim_iterations"] = json!(r.iterations);
+        }
+
+        // ---------------- sustainable tank (Pyfa Fit.sustainableTank, eos LGPL): when the capacitor is not
+        // stable (or reload is factored), local cap-using repairers only run as far as peak recharge allows.
+        {
+            let stable_now = capj["stable"].as_bool().unwrap_or(true);
+            let mut sus = [shield_rep, armor_rep, hull_rep];
+            if !stable_now || factor_reload {
+                let grp_of = |i: usize| ds.groups.get(&self.items[i].group).map(|g| g.name.as_str()).unwrap_or("");
+                let spec = |gname: &str| -> Option<(usize, &'static str)> {
+                    match gname {
+                        "Shield Booster" | "Ancillary Shield Booster" => Some((0, "shieldBonus")),
+                        "Armor Repair Unit" | "Ancillary Armor Repairer" => Some((1, "armorDamageAmount")),
+                        "Hull Repair Unit" => Some((2, "structureDamageAmount")),
+                        _ => None,
+                    }
+                };
+                let mut adj = [0.0f64; 3];
+                let mut used = cap_used;
+                let mut reps: Vec<(usize, usize, &'static str, f64)> = Vec::new();
+                for layer in 0..3 {
+                    for &i in &modules {
+                        if !active(i) {
+                            continue;
+                        }
+                        let gname = grp_of(i);
+                        let Some((l, attr)) = spec(gname) else { continue };
+                        if l != layer {
+                            continue;
+                        }
+                        let cap_need = self.get(i, id.cap_need);
+                        let avg = self.avg_cycle_ms(i, &id, factor_reload);
+                        let cap_use = if cap_need != 0.0 && avg > 0.0 { cap_need / (avg / 1000.0) } else { 0.0 };
+                        let cyc = self.raw_cycle_ms(i, &id);
+                        if cyc <= 0.0 {
+                            continue;
+                        }
+                        let amount = g(i, attr);
+                        let charge = self.items[i].charge;
+                        let paste = charge.map(|c| ds.types[&self.items[c].type_id].name == "Nanite Repair Paste").unwrap_or(false);
+                        if cap_use != 0.0 {
+                            used -= cap_use;
+                            let mult = if paste { let m = g(i, "chargedArmorDamageMultiplier"); if m == 0.0 { 1.0 } else { m } } else { 1.0 };
+                            adj[l] -= amount * mult / (cyc / 1000.0);
+                            reps.push((i, l, attr, cap_use));
+                        } else if gname == "Ancillary Shield Booster" {
+                            let reload = if factor_reload && charge.is_some() { self.get(i, id.reload) } else { 0.0 };
+                            let shots = self.num_shots(i, &id).max(1) as f64;
+                            let off = reload / (shots * cyc + reload);
+                            adj[l] -= amount * off / (cyc / 1000.0);
+                        }
+                    }
+                }
+                let eff = |i: usize, attr: &str| {
+                    let m = g(i, "chargedArmorDamageMultiplier");
+                    g(i, attr) * if m == 0.0 { 1.0 } else { m } / self.get(i, id.cap_need)
+                };
+                reps.sort_by(|a, b| eff(b.0, b.2).partial_cmp(&eff(a.0, a.2)).unwrap_or(std::cmp::Ordering::Equal));
+                let total_peak = peak + cap_added;
+                for (i, l, attr, cap_use) in reps {
+                    if used > total_peak {
+                        break;
+                    }
+                    let charge = self.items[i].charge;
+                    let reload = if factor_reload && charge.is_some() { self.get(i, id.reload) } else { 0.0 };
+                    let cyc = self.raw_cycle_ms(i, &id);
+                    let sustain = ((total_peak - used) / cap_use).min(1.0);
+                    let amount = g(i, attr);
+                    if charge.is_none() {
+                        adj[l] += sustain * amount / (cyc / 1000.0);
+                    } else {
+                        let paste = ds.types[&self.items[charge.unwrap()].type_id].name == "Nanite Repair Paste";
+                        let mult = if paste { let m = g(i, "chargedArmorDamageMultiplier"); if m == 0.0 { 1.0 } else { m } } else { 1.0 };
+                        let shots = self.num_shots(i, &id).max(1) as f64;
+                        let on = shots * cyc / (shots * cyc + reload);
+                        adj[l] += sustain * amount * on * mult / (cyc / 1000.0);
+                    }
+                    used += cap_use;
+                }
+                for l in 0..3 {
+                    sus[l] += adj[l];
+                }
+            }
+            defense["tank"]["sustained"] = json!({"passive_shield": passive, "shield_repair": sus[0], "armor_repair": sus[1], "hull_repair": sus[2]});
+            defense["tank"]["sustained_effective"] = json!({"passive_shield": effectivify(passive, rs), "shield_repair": effectivify(sus[0], rs),
+                "armor_repair": effectivify(sus[1], ra), "hull_repair": effectivify(sus[2], rh)});
         }
 
         // ---------------- navigation

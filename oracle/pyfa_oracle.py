@@ -177,7 +177,7 @@ def stats(fit):
         "hp": fit.hp, "ehp": fit.ehp,
         "resonance": {l: {t: g(("%s%sDamageResonance" % (l, t.capitalize())) if l != "hull" else "%sDamageResonance" % t)
                           for t in ("em", "thermal", "kinetic", "explosive")} for l in ("shield", "armor", "hull")},
-        "tank": fit.tank,
+        "tank": fit.tank, "sustainable_tank": fit.sustainableTank, "cap_used": fit.capUsed, "cap_recharge_peak_plus_added": fit.capRecharge,
         "weapon_dps": fit.getWeaponDps(spoolOptions=SPOOL).total, "weapon_volley": fit.getWeaponVolley(spoolOptions=SPOOL).total,
         "drone_dps": fit.getDroneDps().total, "drone_volley": fit.getDroneVolley().total,
         "dps": dps.total, "volley": vol.total,
