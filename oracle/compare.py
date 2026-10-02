@@ -93,13 +93,16 @@ def main(files):
                 bfs = [json.loads(subprocess.run([BIN, "eft", str(ROOT / "tests" / e), "--skills", "5"], capture_output=True, text=True, check=True).stdout)
                        for e in spec["booster_efts"]]
                 patch = {**patch, "fleet": {"buffs": [], "booster_fits": bfs}}
+            for pe in spec.get("projected_efts", []):
+                pf = json.loads(subprocess.run([BIN, "eft", str(ROOT / "tests" / pe["eft"]), "--skills", "5"], capture_output=True, text=True, check=True).stdout)
+                patch = {**patch, "projected": patch.get("projected", []) + [{"kind": "fit", "fit": pf, "amount": pe.get("amount", 1), "distance_m": pe.get("distance_m")}]}
             req = json.loads(p.stdout); req.update(patch)
             PATCHES[name] = patch
         else:
             p = subprocess.run([BIN, "eft", f, "--skills", "5"], capture_output=True, text=True)
             if p.returncode: print(f"{name}: SKIP parse ({p.stderr.strip()})"); continue
             req = json.loads(p.stdout)
-        if (req.get("fleet") or {}).get("buffs") or any(p.get("kind") not in ("module", "drone") for p in req.get("projected", [])):
+        if (req.get("fleet") or {}).get("buffs") or any(p.get("kind") not in ("module", "drone", "fit") for p in req.get("projected", [])):
             print(f"{name}: SKIP (oracle lacks projection/fleet)"); continue
         rp = TMP / f"{name}.json"; rp.write_text(json.dumps(req)); reqs.append((name, rp, f))
     env = dict(os.environ, PYTHONPATH=f"{REF}/stubs", ORACLE_REPEAT="3")

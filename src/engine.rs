@@ -112,6 +112,17 @@ pub struct Fit<'a> {
     pub char: usize,
     pub warnings: Vec<String>,
     pub is_structure: bool,
+    /// incoming remote reps / cap transfers / neuts from projected items, evaluated in stats
+    pub proj_special: Vec<ProjSpecial>,
+}
+
+/// A projected effect that does not modify attributes but feeds tank or capacitor stats (Pyfa: fit._armorRr, addDrain).
+#[derive(Debug, Clone, Copy)]
+pub enum ProjSpecial {
+    /// layer 0 shield, 1 armor, 2 hull; amount attr * mult * factor every `duration`
+    Rep { item: usize, layer: u8, amount: u32, mult: f64, factor: f64 },
+    /// capacitor drain (sign +1) or fill (sign -1) per cycle of `duration` attr
+    Drain { item: usize, amount: u32, duration: u32, factor: f64, resist: u32, sign: f64 },
 }
 
 #[derive(Debug)]
@@ -249,7 +260,7 @@ impl<'a> Fit<'a> {
 
     /// Build the object graph for a request. Does not evaluate anything.
     pub fn build(ds: &'a Dataset, req: &FitRequest) -> Result<Fit<'a>, EngineError> {
-        let mut fit = Fit { ds, items: Vec::with_capacity(512), ship: 0, char: 0, warnings: Vec::new(), is_structure: false };
+        let mut fit = Fit { ds, items: Vec::with_capacity(512), ship: 0, char: 0, warnings: Vec::new(), is_structure: false, proj_special: Vec::new() };
         let ship = fit.new_item(req.ship.type_id, Kind::Ship, Loc::Ship, "/ship/type_id")?;
         fit.ship = ship;
         fit.is_structure = fit.items[ship].category == 65;
@@ -380,6 +391,12 @@ impl<'a> Fit<'a> {
                             it.state = m.state.unwrap_or(State::Active);
                             it.distance = p.distance_m;
                             it.req_index = Some(i);
+                            if let Some(c) = m.charge_type_id {
+                                let cidx = fit.new_item(c, Kind::Charge, Loc::Nowhere, &format!("/projected/{i}/module/charge_type_id"))?;
+                                fit.items[cidx].parent = Some(idx);
+                                fit.items[cidx].owned = false;
+                                fit.items[idx].charge = Some(cidx);
+                            }
                         }
                     }
                 }
@@ -391,6 +408,47 @@ impl<'a> Fit<'a> {
                             it.owned = false;
                             it.state = State::Active;
                             it.distance = p.distance_m;
+                        }
+                    }
+                }
+                "fit" => {
+                    // whole projected fit: compute the source fit on its own (its skills, implants, fleet), then
+                    // project each active module / drone as a frozen item carrying the source-modified values.
+                    if let Some(src_req) = &p.fit {
+                        let mut sreq = (**src_req).clone();
+                        sreq.projected.clear();
+                        let src = match Fit::build(ds, &sreq) {
+                            Ok(f) => f,
+                            Err(e) => {
+                                fit.warnings.push(format!("projected[{i}] fit: {e:?}"));
+                                continue;
+                            }
+                        };
+                        let mut frozen: Vec<(u32, u32, FxHashMap<u32, f64>)> = Vec::new();
+                        for (si, it) in src.items.iter().enumerate() {
+                            let copies = match it.kind {
+                                Kind::Module if it.state >= State::Active => 1,
+                                Kind::Drone => it.active_count,
+                                _ => 0,
+                            };
+                            if copies == 0 {
+                                continue;
+                            }
+                            let vals: FxHashMap<u32, f64> = it.attrs.keys().map(|&a| (a, src.get(si, a))).collect();
+                            frozen.push((it.type_id, copies, vals));
+                        }
+                        for (type_id, copies, vals) in frozen {
+                            for _ in 0..copies * p.amount.max(1) {
+                                let idx = fit.new_item(type_id, Kind::Projected, Loc::Nowhere, &format!("/projected/{i}"))?;
+                                let it = &mut fit.items[idx];
+                                it.owned = false;
+                                it.state = State::Active;
+                                it.distance = p.distance_m;
+                                it.req_index = Some(i);
+                                for (a, v) in &vals {
+                                    it.attrs.entry(*a).or_insert_with(|| Attr::new(*v)).base = *v;
+                                }
+                            }
                         }
                     }
                 }
@@ -647,6 +705,9 @@ impl<'a> Fit<'a> {
     }
 
     fn register_projected(&mut self, i: usize) {
+        const DAMAGE_EFFECTS: &[&str] = &["projectileFired", "targetAttack", "useMissiles", "barrage", "targetDisintegratorAttack",
+            "missileLaunchingForEntity", "fighterAbilityAttackM", "fighterAbilityMissiles", "superWeaponAmarr", "superWeaponCaldari",
+            "superWeaponGallente", "superWeaponMinmatar", "mining", "miningLaser", "miningClouds", "dotMissileLaunching"];
         let ds = self.ds;
         let src_cat = self.items[i].category;
         let state = self.items[i].state;
@@ -699,10 +760,55 @@ impl<'a> Fit<'a> {
             } else if name.starts_with("remoteSensorBoost") {
                 push(self, ds.attr_id("maxTargetRange"), ds.attr_id("maxTargetRangeBonus"), 6);
                 push(self, ds.attr_id("scanResolution"), ds.attr_id("scanResolutionBonus"), 6);
+                for t in ["Gravimetric", "Ladar", "Magnetometric", "Radar"] {
+                    push(self, ds.attr_id(&format!("scan{t}Strength")), ds.attr_id(&format!("scan{t}StrengthPercent")), 6);
+                }
+            } else if let Some(ps) = self.proj_special_for(i, name, resist) {
+                if !ps.is_empty() {
+                    self.proj_special.extend(ps);
+                }
+            } else if DAMAGE_EFFECTS.contains(&name) {
+                // weapon damage onto the target: not part of the target's own stats
             } else {
                 self.warnings.push(format!("projected effect '{name}' not modelled yet"));
             }
         }
+    }
+
+    /// Pyfa's 'projected' handlers for remote reps, cap transfers and neuts/nos (eos/effects.py, LGPL).
+    fn proj_special_for(&self, i: usize, name: &str, resist: u32) -> Option<Vec<ProjSpecial>> {
+        let ds = self.ds;
+        let a = |n: &str| ds.attr_id(n);
+        let it = &self.items[i];
+        let base = |n: &str| it.attrs.get(&ds.attr_id(n)).map(|x| x.base).unwrap_or(0.0);
+        let dist = it.distance;
+        let falloff_factor = || crate::stats::range_factor(base("maxRange"), base("falloffEffectiveness"), dist, true);
+        let gate = |opt: f64| if opt < dist.unwrap_or(0.0) { 0.0 } else { 1.0 };
+        let no_assist = self.items[self.ship].attrs.get(&a("disallowAssistance")).map(|x| x.base != 0.0).unwrap_or(false);
+        let rep = |layer: u8, amt: &str, mult: f64, factor: f64| {
+            if no_assist { vec![] } else { vec![ProjSpecial::Rep { item: i, layer, amount: a(amt), mult, factor }] }
+        };
+        let drain = |amt: &str, dur: &str, factor: f64, sign: f64| vec![ProjSpecial::Drain { item: i, amount: a(amt), duration: a(dur), factor, resist, sign }];
+        let paste = it.charge.map(|c| ds.types.get(&self.items[c].type_id).map(|t| t.name == "Nanite Repair Paste").unwrap_or(false)).unwrap_or(false);
+        Some(match name {
+            "shipModuleRemoteShieldBooster" | "shipModuleAncillaryRemoteShieldBooster" => rep(0, "shieldBonus", 1.0, falloff_factor()),
+            "shipModuleRemoteArmorRepairer" | "ShipModuleRemoteArmorMutadaptiveRepairer" => rep(1, "armorDamageAmount", 1.0, falloff_factor()),
+            "shipModuleAncillaryRemoteArmorRepairer" => rep(1, "armorDamageAmount", if paste { 3.0 } else { 1.0 }, falloff_factor()),
+            "shipModuleRemoteHullRepairer" => rep(2, "structureDamageAmount", 1.0, falloff_factor()),
+            "npcEntityRemoteShieldBooster" => rep(0, "shieldBonus", 1.0, gate(base("maxRange"))),
+            "npcEntityRemoteArmorRepairer" => rep(1, "armorDamageAmount", 1.0, gate(base("maxRange"))),
+            "npcEntityRemoteHullRepairer" => rep(2, "structureDamageAmount", 1.0, gate(base("maxRange"))),
+            "shipModuleRemoteCapacitorTransmitter" => {
+                if no_assist { vec![] } else { drain("powerTransferAmount", "duration", gate(base("maxRange")), -1.0) }
+            }
+            "energyNeutralizerFalloff" => drain("energyNeutralizerAmount", "duration", falloff_factor(), 1.0),
+            "energyNosferatuFalloff" => drain("powerTransferAmount", "duration", falloff_factor(), 1.0),
+            "structureEnergyNeutralizerFalloff" => drain("energyNeutralizerAmount", "duration", 1.0, 1.0),
+            "entityEnergyNeutralizerFalloff" => {
+                drain("energyNeutralizerAmount", "energyNeutralizerDuration", gate(base("energyNeutralizerRangeOptimal")), 1.0)
+            }
+            _ => return None,
+        })
     }
 
     fn register_buffs(&mut self, req: &FitRequest) {

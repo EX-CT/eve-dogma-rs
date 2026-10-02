@@ -125,6 +125,18 @@ def build(req):
             pd.amountActive = pd.amount
             pd.projectionRange = p.get("distance_m")
             fit.projectedDrones.append(pd)
+        elif p.get("kind") == "fit":
+            sreq = dict(p["fit"]); sreq["projected"] = []
+            sf = build(sreq)
+            eos.db.save(fit)
+            eos.db.save(sf)
+            fit.projectedFitDict[sf.ID] = sf
+            eos.db.commit()
+            pi = sf.getProjectionInfo(fit.ID)
+            pi.active = True
+            pi.amount = p.get("amount", 1)
+            pi.projectionRange = p.get("distance_m")
+            eos.db.commit()
         else:
             raise KeyError("projected kind %s unsupported by oracle" % p.get("kind"))
     for e in req.get("environment", {}).get("effect_type_ids", []):
