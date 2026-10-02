@@ -897,8 +897,8 @@ impl<'a> Fit<'a> {
             push("LAUNCHER_HARDPOINTS", format!("launchers {l} > hardpoints {}", g(ship, "launcherSlotsLeft")), None);
         }
         let ship_t = &ds.types[&self.items[ship].type_id];
-        let groups_attrs: Vec<u32> = (1..=20).map(|k| ds.attr_id(&format!("canFitShipGroup{k:02}"))).filter(|x| *x != 0).collect();
-        let types_attrs: Vec<u32> = (1..=11).map(|k| ds.attr_id(&format!("canFitShipType{k}"))).filter(|x| *x != 0).collect();
+        let groups_attrs = &ds.wk.can_fit_group;
+        let types_attrs = &ds.wk.can_fit_type;
         let mut fitted_group: rustc_hash::FxHashMap<u32, u32> = Default::default();
         let mut fitted_type: rustc_hash::FxHashMap<u32, u32> = Default::default();
         let mut active_group: rustc_hash::FxHashMap<u32, u32> = Default::default();
@@ -951,7 +951,7 @@ impl<'a> Fit<'a> {
             }
             if let Some(c) = it.charge {
                 let ct = &ds.types[&self.items[c].type_id];
-                let cg: Vec<u32> = (1..=5).filter_map(|k| mt.attr(ds.attr_id(&format!("chargeGroup{k}")))).map(|v| v as u32).filter(|v| *v != 0).collect();
+                let cg: Vec<u32> = ds.wk.charge_group.iter().filter_map(|a| mt.attr(*a)).map(|v| v as u32).filter(|v| *v != 0).collect();
                 if !cg.contains(&ct.group) {
                     push("CHARGE_GROUP", format!("{} cannot be loaded into {name}", ct.name), idx);
                 }
@@ -967,28 +967,37 @@ impl<'a> Fit<'a> {
                 }
             }
         }
-        // skills
-        let mut have: rustc_hash::FxHashMap<u32, f64> = Default::default();
-        for it in self.items.iter().filter(|i| i.kind == Kind::Skill) {
-            have.insert(it.type_id, it.base_opt(crate::engine::ATTR_SKILL_LEVEL).unwrap_or(0.0));
-        }
-        let lvl_attrs = ["requiredSkill1Level", "requiredSkill2Level", "requiredSkill3Level", "requiredSkill4Level", "requiredSkill5Level", "requiredSkill6Level"];
-        let skill_attrs = ["requiredSkill1", "requiredSkill2", "requiredSkill3", "requiredSkill4", "requiredSkill5", "requiredSkill6"];
-        let mut missing: Vec<(u32, f64, u32)> = Vec::new();
+        // skills: collect requirements first, then look up only the required skills' levels
+        let mut reqs: Vec<(u32, f64, u32)> = Vec::new();
         for it in &self.items {
             if !matches!(it.kind, Kind::Ship | Kind::Module | Kind::Charge | Kind::Drone | Kind::Fighter | Kind::Implant | Kind::Booster) {
                 continue;
             }
             let t = &ds.types[&it.type_id];
-            for (sa, la) in skill_attrs.iter().zip(lvl_attrs.iter()) {
-                let s = t.attr(ds.attr_id(sa)).unwrap_or(0.0) as u32;
+            for &(sa, la) in &ds.wk.req_skill {
+                let s = t.attr(sa).unwrap_or(0.0) as u32;
                 if s == 0 {
                     continue;
                 }
-                let need = t.attr(ds.attr_id(la)).unwrap_or(1.0);
-                if *have.get(&s).unwrap_or(&0.0) < need && !missing.iter().any(|m| m.0 == s && m.1 >= need) {
-                    missing.push((s, need, it.type_id));
+                reqs.push((s, t.attr(la).unwrap_or(1.0), it.type_id));
+            }
+        }
+        let mut have: Vec<(u32, f64)> = reqs.iter().map(|r| (r.0, 0.0)).collect();
+        have.sort_unstable_by_key(|h| h.0);
+        have.dedup_by_key(|h| h.0);
+        if !have.is_empty() {
+            for it in self.items.iter().filter(|i| i.kind == Kind::Skill) {
+                if let Ok(k) = have.binary_search_by_key(&it.type_id, |h| h.0) {
+                    // last skill item of a type wins (same as the map insert it replaces)
+                    have[k].1 = it.base_opt(crate::engine::ATTR_SKILL_LEVEL).unwrap_or(0.0);
                 }
+            }
+        }
+        let level = |s: u32| have.binary_search_by_key(&s, |h| h.0).map(|k| have[k].1).unwrap_or(0.0);
+        let mut missing: Vec<(u32, f64, u32)> = Vec::new();
+        for (s, need, by) in reqs {
+            if level(s) < need && !missing.iter().any(|m| m.0 == s && m.1 >= need) {
+                missing.push((s, need, by));
             }
         }
         for (s, need, by) in missing {

@@ -147,6 +147,17 @@ pub struct Dataset {
     type_by_name: FxHashMap<String, u32>,
     /// all skill type ids (category 16)
     pub skills: Vec<u32>,
+    /// attribute ids looked up by name on hot paths, resolved once at load
+    pub wk: WellKnown,
+}
+
+#[derive(Default)]
+pub struct WellKnown {
+    pub can_fit_group: Vec<u32>,
+    pub can_fit_type: Vec<u32>,
+    pub charge_group: Vec<u32>,
+    /// (requiredSkillN, requiredSkillNLevel)
+    pub req_skill: Vec<(u32, u32)>,
 }
 
 // ---------- raw serde shapes ----------
@@ -424,6 +435,17 @@ impl Dataset {
             effect_by_name,
             type_by_name,
             skills,
+            wk: WellKnown::default(),
+        })
+        .map(|mut d: Dataset| {
+            let a = |n: &str| d.attr_id(n);
+            d.wk = WellKnown {
+                can_fit_group: (1..=20).map(|k| a(&format!("canFitShipGroup{k:02}"))).filter(|x| *x != 0).collect(),
+                can_fit_type: (1..=11).map(|k| a(&format!("canFitShipType{k}"))).filter(|x| *x != 0).collect(),
+                charge_group: (1..=5).map(|k| a(&format!("chargeGroup{k}"))).filter(|x| *x != 0).collect(),
+                req_skill: (1..=6).map(|k| (a(&format!("requiredSkill{k}")), a(&format!("requiredSkill{k}Level")))).filter(|x| x.0 != 0).collect(),
+            };
+            d
         })
     }
 
