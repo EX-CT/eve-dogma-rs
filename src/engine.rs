@@ -1684,7 +1684,15 @@ impl<'a> Fit<'a> {
 
     fn src_value(&self, s: &Src) -> f64 {
         match *s {
-            Src::Attr { item, attr } => self.get(item, attr),
+            Src::Attr { item, attr } => {
+                if self.items[item].kind == Kind::Module
+                    && self.ds.attrs.get(&attr).map_or(false, |i| i.overload)
+                {
+                    self.eval_before(item, attr)
+                } else {
+                    self.get(item, attr)
+                }
+            }
             Src::Const(v) => v,
             Src::Prop { module, ship, speed, thrust, mass } => {
                 let m = self.get(ship, mass);
@@ -1713,11 +1721,46 @@ impl<'a> Fit<'a> {
             return a.base; // cycle guard
         }
         a.busy.set(true);
+        let val = self.combine(item, attr_id, a, None);
+        a.busy.set(false);
+        a.val.set(Some(val));
+        val
+    }
+
+    /// Pyfa runs effects item by item in fit order: an overheat effect reads its module's `overload*`
+    /// attribute before modules listed later in the fit have applied their modifiers (e.g. a Tengu defensive
+    /// subsystem listed after the shield hardener has not boosted overloadHardeningBonus yet).
+    fn eval_before(&self, item: usize, attr_id: u32) -> f64 {
+        let Some(a) = self.items[item].attrs.get(&attr_id) else { return self.get(item, attr_id) };
+        let Some(lim) = self.items[item].req_index else { return self.get(item, attr_id) };
+        let later = |m: &AMod| {
+            let s = &self.items[m.source_item];
+            s.kind == Kind::Module && s.loc == Loc::Ship && s.req_index.map_or(false, |r| r > lim)
+        };
+        if !a.mods.iter().any(later) {
+            return self.get(item, attr_id);
+        }
+        if a.busy.get() {
+            return a.base;
+        }
+        a.busy.set(true);
+        let v = self.combine(item, attr_id, a, Some(lim));
+        a.busy.set(false);
+        v
+    }
+
+    fn combine(&self, item: usize, attr_id: u32, a: &Attr, before: Option<usize>) -> f64 {
         let info = self.ds.attrs.get(&attr_id);
         let mut val = a.base;
         if !a.mods.is_empty() {
             let mut vals: Vec<(i32, bool, f64)> = Vec::with_capacity(a.mods.len());
             for m in &a.mods {
+                if let Some(lim) = before {
+                    let s = &self.items[m.source_item];
+                    if s.kind == Kind::Module && s.loc == Loc::Ship && s.req_index.map_or(false, |r| r > lim) {
+                        continue;
+                    }
+                }
                 vals.push((m.op, m.penalized, self.src_value(&m.src)));
             }
             for op in [-1, 0, 1, 2, 3, 4, 5, 6, 7] {
@@ -1796,8 +1839,6 @@ impl<'a> Fit<'a> {
                 val = crate::stats::py_round2(val);
             }
         }
-        a.busy.set(false);
-        a.val.set(Some(val));
         val
     }
 }

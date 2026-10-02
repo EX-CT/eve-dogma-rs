@@ -173,6 +173,10 @@ CHARGE_GROUP CHARGE_SIZE CHARGE_CAPACITY MISSING_SKILL`.
 
 Conventions matching Pyfa (deliberate): volley is spooled; local nosferatu is cap income; missiles use the pilot's
 `missileDamageMultiplier`; fighters use Pyfa's default abilities; system security defaults to nullsec.
+Breacher pods (additive, pending bench 1.9.0): a `weapons[]` entry with `kind: "breacher"` whose `volley`/`dps` carry the
+tick damage as `pure` (resistance-independent, included in `total` and `vs_target_profile`); only the strongest pod counts
+in the fit totals (Pyfa `DmgTypes.pure`). `pure` appears only when non-zero. Overheat effects read their module's
+`overload*` attributes as Pyfa does, before modules listed later in the fit have applied their modifiers.
 
 ## Changelog
 - v1 (2026-10-03): initial contract.

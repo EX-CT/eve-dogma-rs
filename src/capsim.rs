@@ -282,7 +282,7 @@ pub fn simulate(capacity: f64, recharge_ms: f64, drains: &[Drain], start_frac: f
                     last_ev = Some(ev);
                     break;
                 }
-                cap_wrap = (cap * 10.0).round() / 10.0;
+                cap_wrap = crate::stats::py_round1(cap); // Python round(cap, 1)
                 awaiting_wrap = k;
                 t_wrap += period;
             }

@@ -17,6 +17,9 @@ pub struct AttrInfo {
     pub display: Option<String>,
     /// cpu / power / cpuOutput / powerOutput are rounded to 2 decimals (Pyfa)
     pub round2: bool,
+    /// `overload*` attribute (read by overheat effects; evaluated in Pyfa's module order)
+    #[serde(default)]
+    pub overload: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
@@ -376,6 +379,7 @@ impl Dataset {
                 AttrInfo {
                     id,
                     round2: matches!(a.name.as_str(), "cpu" | "power" | "cpuOutput" | "powerOutput"),
+                    overload: a.name.starts_with("overload"),
                     name: a.name,
                     default: a.default,
                     stackable: a.stackable,

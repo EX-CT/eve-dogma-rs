@@ -50,24 +50,30 @@ struct Dmg {
     th: f64,
     ki: f64,
     ex: f64,
+    /// breacher pod damage (Pyfa `pure`: ignores resistances; only the strongest pod applies)
+    pure: f64,
 }
 impl Dmg {
     fn total(&self) -> f64 {
-        self.em + self.th + self.ki + self.ex
+        self.em + self.th + self.ki + self.ex + self.pure
     }
     fn scale(&self, k: f64) -> Dmg {
-        Dmg { em: self.em * k, th: self.th * k, ki: self.ki * k, ex: self.ex * k }
+        Dmg { em: self.em * k, th: self.th * k, ki: self.ki * k, ex: self.ex * k, pure: self.pure * k }
     }
     fn add(&mut self, o: &Dmg) {
         self.em += o.em;
         self.th += o.th;
         self.ki += o.ki;
         self.ex += o.ex;
+        self.pure += o.pure;
     }
     fn vs(&self, r: &Resists) -> f64 {
-        self.em * (1.0 - r.em) + self.th * (1.0 - r.thermal) + self.ki * (1.0 - r.kinetic) + self.ex * (1.0 - r.explosive)
+        self.em * (1.0 - r.em) + self.th * (1.0 - r.thermal) + self.ki * (1.0 - r.kinetic) + self.ex * (1.0 - r.explosive) + self.pure
     }
     fn json(&self) -> Value {
+        if self.pure != 0.0 {
+            return json!({"em": self.em, "thermal": self.th, "kinetic": self.ki, "explosive": self.ex, "pure": self.pure, "total": self.total()});
+        }
         json!({"em": self.em, "thermal": self.th, "kinetic": self.ki, "explosive": self.ex, "total": self.total()})
     }
 }
@@ -147,6 +153,18 @@ pub fn py_round2(v: f64) -> f64 {
         return x.round() / 100.0;
     }
     format!("{v:.2}").parse().unwrap_or(v)
+}
+
+/// Python `round(v, 1)` (correctly rounded, exact ties to even); used for the capsim wrap value
+pub fn py_round1(v: f64) -> f64 {
+    if !v.is_finite() {
+        return v;
+    }
+    let x = v * 10.0;
+    if ((x - x.trunc()).abs() - 0.5).abs() > 1e-6 {
+        return x.round() / 10.0;
+    }
+    format!("{v:.1}").parse().unwrap_or(v)
 }
 
 fn tidy(mut v: Value) -> Value {
@@ -257,6 +275,7 @@ impl<'a> Fit<'a> {
             th: self.get(src, id.dmg[1]) * mult,
             ki: self.get(src, id.dmg[2]) * mult,
             ex: self.get(src, id.dmg[3]) * mult,
+            pure: 0.0,
         };
         (d, kind)
     }
@@ -335,8 +354,32 @@ impl<'a> Fit<'a> {
         let mut weapons = Vec::new();
         let mut w_vol = Dmg::default();
         let mut w_dps = Dmg::default();
+        let mut w_pure = 0.0f64;
         for &i in &modules {
             if !active(i) {
+                continue;
+            }
+            // breacher pods (Pyfa isBreacher): damage over time, dotMaxDamagePerTick every second for
+            // floor(dotDuration / 1 s) ticks starting at t = 1 s; volley = dps = one tick; the fit total keeps only
+            // the strongest pod (DmgTypes.pure takes the max per tick)
+            if let Some(c) = self.items[i].charge.filter(|&c| self.has_effect_named(c, &["dotMissileLaunching"])) {
+                let ticks = (g(c, "dotDuration") / 1000.0).floor();
+                if ticks < 1.0 || self.raw_cycle_ms(i, &id) == 0.0 {
+                    continue;
+                }
+                let tick = g(c, "dotMaxDamagePerTick");
+                if tick <= 0.0 {
+                    continue;
+                }
+                w_pure = w_pure.max(tick);
+                let v = Dmg { pure: tick, ..Dmg::default() };
+                weapons.push(json!({
+                    "module_index": self.items[i].req_index, "type_id": self.items[i].type_id,
+                    "name": ds.types[&self.items[i].type_id].name, "kind": "breacher",
+                    "charge_type_id": self.items[c].type_id,
+                    "volley": v.json(), "dps": v.json(), "cycle_time_ms": 1000.0,
+                    "duration_s": ticks, "max_hp_percent_per_tick": g(c, "dotMaxHPPercentagePerTick"),
+                }));
                 continue;
             }
             let (base, kind) = self.module_volley(i, &id);
@@ -407,6 +450,8 @@ impl<'a> Fit<'a> {
             }
             weapons.push(w);
         }
+        w_vol.pure = w_pure;
+        w_dps.pure = w_pure;
         let mut d_vol = Dmg::default();
         let mut d_dps = Dmg::default();
         let mut drone_out = Vec::new();
@@ -416,7 +461,7 @@ impl<'a> Fit<'a> {
                 continue;
             }
             let mult = if self.has(i, id.dmg_mult) { self.get(i, id.dmg_mult) } else { 1.0 };
-            let v = Dmg { em: self.get(i, id.dmg[0]), th: self.get(i, id.dmg[1]), ki: self.get(i, id.dmg[2]), ex: self.get(i, id.dmg[3]) }.scale(mult * n);
+            let v = Dmg { em: self.get(i, id.dmg[0]), th: self.get(i, id.dmg[1]), ki: self.get(i, id.dmg[2]), ex: self.get(i, id.dmg[3]), pure: 0.0 }.scale(mult * n);
             let cyc = self.raw_cycle_ms(i, &id);
             if v.total() == 0.0 || cyc == 0.0 {
                 continue;
@@ -455,6 +500,7 @@ impl<'a> Fit<'a> {
                     th: g(i, &format!("{prefix}DamageTherm")),
                     ki: g(i, &format!("{prefix}DamageKin")),
                     ex: g(i, &format!("{prefix}DamageExp")),
+                    pure: 0.0,
                 }
                 .scale(m * n);
                 let dur = g(i, &format!("{prefix}Duration"));
