@@ -78,6 +78,7 @@ fn gcd(a: u64, b: u64) -> u64 {
     if b == 0 { a } else { gcd(b, a % b) }
 }
 
+#[allow(unused_assignments)] // take!() before a break
 pub fn simulate(capacity: f64, recharge_ms: f64, drains: &[Drain], start_frac: f64, reload: bool, stagger: bool, t_max_ms: f64) -> CapResult {
     let tau = recharge_ms / 5.0;
     let mut heap: BinaryHeap<Ev> = BinaryHeap::new();
@@ -178,10 +179,24 @@ pub fn simulate(capacity: f64, recharge_ms: f64, drains: &[Drain], start_frac: f
     };
     let mut last_ev: Option<Ev> = None;
     let mut exp_cache = [(0u64, 0.0f64, false); 64];
-    while let Some(mut ev) = heap.pop() {
+    // The pop order of a priority queue depends only on the set of entries (the order is total: seq is unique), so
+    // the current event stays in the heap and is updated in place (one sift-down) unless something else must be
+    // pushed first or it leaves the simulation.
+    while let Some(&top) = heap.peek() {
+        let mut ev = top;
+        let mut in_heap = true;
+        macro_rules! take {
+            () => {
+                if in_heap {
+                    heap.pop();
+                    in_heap = false;
+                }
+            };
+        }
         let sv = sources[ev.src as usize];
         let t_now = ev.t;
         if t_now >= t_max_ms {
+            take!();
             last_ev = Some(ev);
             break;
         }
@@ -204,6 +219,7 @@ pub fn simulate(capacity: f64, recharge_ms: f64, drains: &[Drain], start_frac: f
             if t_now == t_wrap {
                 let k = key(&awaiting);
                 if cap >= cap_wrap && k == awaiting_wrap {
+                    take!();
                     last_ev = Some(ev);
                     break;
                 }
@@ -215,10 +231,12 @@ pub fn simulate(capacity: f64, recharge_ms: f64, drains: &[Drain], start_frac: f
         t_last = t_now;
         iterations += 1;
         if iterations > 5_000_000 {
+            take!();
             last_ev = Some(ev);
             break;
         }
         if sv.inj && cap - sv.cap_need > cap_max {
+            take!();
             awaiting.push(ev);
             continue;
         }
@@ -232,6 +250,7 @@ pub fn simulate(capacity: f64, recharge_ms: f64, drains: &[Drain], start_frac: f
                 } else {
                     (0..awaiting.len()).max_by(|&a, &b| (-cn(&awaiting[a])).partial_cmp(&-cn(&awaiting[b])).unwrap()).unwrap()
                 };
+                take!();
                 let mut inj = awaiting.remove(pick);
                 let is = sources[inj.src as usize];
                 cap = (cap - is.cap_need).min(cap_max);
@@ -249,6 +268,7 @@ pub fn simulate(capacity: f64, recharge_ms: f64, drains: &[Drain], start_frac: f
         cap = (cap - sv.cap_need).min(cap_max);
         if cap < cap_lowest {
             if cap < 0.0 {
+                take!();
                 ran_out = true;
                 last_ev = Some(ev);
                 break;
@@ -262,6 +282,7 @@ pub fn simulate(capacity: f64, recharge_ms: f64, drains: &[Drain], start_frac: f
                 break;
             }
             let pick = *good.iter().max_by(|&&a, &&b| (-cn(&awaiting[a])).partial_cmp(&-cn(&awaiting[b])).unwrap()).unwrap();
+            take!();
             let mut inj = awaiting.remove(pick);
             let is = sources[inj.src as usize];
             cap = (cap - is.cap_need).min(cap_max);
@@ -283,7 +304,11 @@ pub fn simulate(capacity: f64, recharge_ms: f64, drains: &[Drain], start_frac: f
         }
         ev.seq = seq;
         seq += 1;
-        heap.push(ev);
+        if in_heap {
+            *heap.peek_mut().unwrap() = ev;
+        } else {
+            heap.push(ev);
+        }
     }
     // EVE's own stability estimate
     let mut all: Vec<Ev> = heap.into_vec();
