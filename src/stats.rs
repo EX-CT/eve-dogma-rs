@@ -87,6 +87,7 @@ struct Ids {
     charge_rate: u32,
     dmg_mult: u32,
     dmg: [u32; 4],
+    dur_extra: [u32; 5],
 }
 
 fn ids(f: &Fit) -> Ids {
@@ -106,6 +107,13 @@ fn ids(f: &Fit) -> Ids {
         charge_rate: a("chargeRate"),
         dmg_mult: a("damageMultiplier"),
         dmg: [a("emDamage"), a("thermalDamage"), a("kineticDamage"), a("explosiveDamage")],
+        dur_extra: [
+            a("durationHighisGood"),
+            a("durationSensorDampeningBurstProjector"),
+            a("durationTargetIlluminationBurstProjector"),
+            a("durationECMJammerBurstProjector"),
+            a("durationWeaponDisruptionBurstProjector"),
+        ],
     }
 }
 
@@ -132,6 +140,11 @@ pub fn float_unerr7(v: f64) -> f64 {
 pub fn py_round2(v: f64) -> f64 {
     if !v.is_finite() {
         return v;
+    }
+    let x = v * 100.0;
+    // away from a .5 tie the scaled rounding is exact; near a tie use the correctly rounded decimal formatting
+    if ((x - x.trunc()).abs() - 0.5).abs() > 1e-6 {
+        return x.round() / 100.0;
     }
     format!("{v:.2}").parse().unwrap_or(v)
 }
@@ -164,15 +177,8 @@ impl<'a> Fit<'a> {
 
     fn raw_cycle_ms(&self, i: usize, id: &Ids) -> f64 {
         let mut v: f64 = self.get(i, id.speed).max(self.get(i, id.duration));
-        for n in [
-            "durationHighisGood",
-            "durationSensorDampeningBurstProjector",
-            "durationTargetIlluminationBurstProjector",
-            "durationECMJammerBurstProjector",
-            "durationWeaponDisruptionBurstProjector",
-        ] {
-            let a = self.ds.attr_id(n);
-            if a != 0 {
+        for &a in &id.dur_extra {
+            if a != 0 && self.has(i, a) {
                 v = v.max(self.get(i, a));
             }
         }
