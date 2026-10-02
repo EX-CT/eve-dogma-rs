@@ -39,21 +39,24 @@ structures (pilot skills/implants ignored, power state, security modifiers), mut
 spool-up weapons, missiles (pilot `missileDamageMultiplier`), drones, fighters (Pyfa default abilities),
 smartbombs/vorton, local reps incl. AAR paste, passive shield regen, Reactive Armor Hardener adaptation,
 capacitor simulation (Pyfa-compatible event simulation incl. injectors, nosferatu income, staggering),
-local command bursts and explicit fleet buffs, projected webs/TPs/damps/sebos/drones with range falloff and
-resistances, validation (CPU/PG/calibration/bandwidth, slots, hardpoints, canFitShip*, rig size,
+local command bursts, explicit fleet buffs and fleet booster fits (strongest buff wins), projected
+webs/TPs/damps/sebos/ECM/drones/whole fits with range falloff, scripts and resistances, incoming remote
+shield/armor/hull reps (Pyfa diminishing returns) and neuts/nos/cap transfers in the cap sim, wormhole environments, validation (CPU/PG/calibration/bandwidth, slots, hardpoints, canFitShip*, rig size,
 max group fitted/online/active, charge compatibility, skill requirements), EFT import/export incl. mutations.
 
 ## Accuracy: Pyfa oracle
 
 `oracle/pyfa_oracle.py` runs Pyfa's eos engine headless as a **black box** (GPL-3.0 test tool, never linked).
 `oracle/compare.py` builds each case (EFT in `tests/fits/` or JSON case in `tests/cases/`), runs both engines
-and compares 48 metrics. `WRITE_EXPECTED=1` freezes Pyfa's numbers into `tests/oracle/pyfa_expected.json`,
+and compares 48 fit metrics plus per-weapon optimal/falloff/tracking and missile range/explosion radius/velocity. `WRITE_EXPECTED=1` freezes Pyfa's numbers into `tests/oracle/pyfa_expected.json`,
 which `cargo test` checks (no Python needed in CI).
 
-Current: **207/207 cases, 9 827 values match Pyfa** (rel. 1e-4) — 101 dogma-engine community/regression fits,
+Current: **249/249 cases, 13 812 values match Pyfa** (rel. 1e-4) — 101 dogma-engine community/regression fits,
 24 hand-written fits (frigates, cruisers, BS, HAC, T3C, T3D, marauders in bastion, logi,
-carriers/supercarrier fighters, command ships, mining), 82 JSON cases (skills 0/2/3/4, damage patterns, RAH
-profiles, reload, projected webs/TP/damps/web drones). 5 metrics are recorded as explained divergences
+carriers/supercarrier fighters, command ships, mining), 124 JSON cases (skills 0/2/3/4, damage patterns, RAH
+profiles, reload, projected webs/TP/damps/ECM/scripts/web+neut drones, projected whole fits, remote reps,
+neuts/nos/cap transfers, fleet booster fits, wormhole environments C1–C6, implant sets, combat boosters).
+The same corpus is the shared bench `EX-CT/eve-dogma-bench`. 5 metrics are recorded as explained divergences
 (Pyfa data older than SDE, invalid fits, structure power state) — see `KNOWN` in `oracle/compare.py`.
 
 ## Performance (same box, 1 core, all-V skills, including capacitor simulation)

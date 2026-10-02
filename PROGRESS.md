@@ -11,7 +11,9 @@ Updated: 2026-10-03 (Asia/Shanghai)
 - Stats: resources, offense (turrets, missiles, smartbombs, vorton, spool, drones, fighters, vs target profile),
   defense/EHP/tank, capacitor sim, navigation, targeting, drones, validation, attribute dumps.
 - EFT import/export incl. mutation blocks.
-- Pyfa oracle + compare + frozen expectations; `cargo test` = 207 cases / 9 827 values green.
+- Pyfa oracle + compare + frozen expectations; `cargo test` = 249 cases / 13 812 values green.
+- fleet.booster_fits, projected kind `fit`, projected-module charges, incoming remote reps / neuts / nos /
+  cap transfers, Pyfa missile range formula (all oracle-verified, contract v1.1–v1.3).
 - CI workflow (downloads dataset release, builds, tests).
 - Benchmarks: 9–13× faster than Pyfa per calculation.
 
@@ -22,9 +24,8 @@ spooled volley, nosferatu cap income, capsim heap tie-break order, RAH simulatio
 fighter abilities/squadron cap, untrained skills present at level 0.
 
 ## Known gaps / next
-- Oracle does not cover fleet boosts from other fits, projected fighters/remote reps/neuts/ECM, or
-  sustained remote tank; engine has partial support (see warnings in output).
-- Not compared yet: weapon range/tracking/application numbers, drone control, fighter abilities other than damage.
+- Not covered yet: projected fighters, ECM jam chance, sustainable tank (Pyfa `sustainableTank` when cap
+  unstable), drone control range/drone application, fighter abilities other than damage, booster side effects.
 - Remaining no-modifierInfo effects (inventory in eve-fit-docs docs/03): many are activation-only;
   each needs a patch or special + oracle case.
 - Perf: all published skills are instantiated (≈1 ms floor); cache skill-only modifiers per skill-set.
