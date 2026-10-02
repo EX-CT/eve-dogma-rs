@@ -57,6 +57,18 @@ pub enum Src {
     Projected { item: usize, attr: u32, factor: f64, target: usize, resist: u32, mul: bool },
 }
 
+/// stacking penalty factor exp(-(i^2) / 7.1289) of the i-th strongest modifier (memoised; bit-identical)
+#[inline]
+fn stack_factor(i: usize) -> f64 {
+    static T: std::sync::OnceLock<[f64; 16]> = std::sync::OnceLock::new();
+    let f = |i: usize| (-((i * i) as f64) / 7.1289).exp();
+    if i < 16 {
+        T.get_or_init(|| std::array::from_fn(f))[i]
+    } else {
+        f(i)
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct AMod {
     pub op: i32,
@@ -1763,7 +1775,7 @@ impl<'a> Fit<'a> {
         let info = self.ds.attrs.get(&attr_id);
         let mut val = a.base;
         if !a.mods.is_empty() {
-            let mut vals: Vec<(i32, bool, f64)> = Vec::with_capacity(a.mods.len());
+            let mut vals: smallvec::SmallVec<[(i32, bool, f64); 8]> = smallvec::SmallVec::with_capacity(a.mods.len());
             for m in &a.mods {
                 if let Some(lim) = before {
                     let s = &self.items[m.source_item];
@@ -1833,7 +1845,7 @@ impl<'a> Fit<'a> {
                 for list in [&mut pos, &mut neg] {
                     list.sort_by(|x, y| (y - 1.0).abs().partial_cmp(&(x - 1.0).abs()).unwrap_or(std::cmp::Ordering::Equal));
                     for (i, m) in list.iter().enumerate() {
-                        val *= 1.0 + (m - 1.0) * (-((i * i) as f64) / 7.1289).exp();
+                        val *= 1.0 + (m - 1.0) * stack_factor(i);
                     }
                 }
             }
