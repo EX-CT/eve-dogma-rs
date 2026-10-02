@@ -1,4 +1,4 @@
-# eve-dogma request/response contract (v1, revision 1.4.2)
+# eve-dogma request/response contract (v1, revision 1.4.3)
 
 Stateless: **one JSON `FitRequest` in → one JSON `FitStats` out.** No hidden state, no clocks, no network.
 The same request with the same dataset must give byte-identical output. Unknown request fields are ignored.
@@ -70,7 +70,7 @@ Library (Rust): `eve_dogma::calc(&Dataset, &FitRequest) -> serde_json::Value`, `
 `options` omitted entirely is the same as `"options": {}`: every option takes its default, so **`validate` defaults to
 true** either way (violations are reported unless `validate: false` is given).
 
-## Semantics (precise definitions, revision 1.4.2)
+## Semantics (precise definitions, revisions 1.4.2–1.4.3)
 
 **`capacitor.use_gj_s` / `injected_gj_s` / `delta_gj_s`** (GJ/s, averages, not the simulation):
 - `use_gj_s` = Σ over the fit's own modules with state ≥ active and capacitorNeed > 0 of
@@ -108,6 +108,24 @@ true** either way (violations are reported unless `validate: false` is given).
 - **An explicit `fleet.buffs` entry overrides both completely for its buff id.** Bursts and booster fits are ignored
   for that id. Several explicit entries with the same id aggregate to one value: the minimum for buffs whose aggregate
   mode is Minimum, the maximum otherwise. Ids without an explicit entry keep the strongest-candidate rule.
+- Environment beacons in `environment.effect_type_ids` whose type carries an abyssal weather (`weather_*`) or AoE
+  cloud (`aoe_beacon_*`) effect are candidates too: their `warfareBuff1/2ID` / `Value` join the same per-id
+  strongest-|value| pool (the dataset lists them in `environment.effect_beacons[*].dbuffs`). As in Pyfa, buffs
+  79, 90, 93–99 also apply to drones that require the Drones skill, and the weather resistance / HP / velocity buffs
+  (90, 93–96, 98, 99) are not stacking-penalised.
+
+**Environment system effects without modifiers** (revision 1.4.3): incursion beacons (`OffensiveDefensiveReduction`:
+Sansha / Drifter incursion system effects) apply, unpenalised, `systemEffectDamageReduction` (PostPercent) to missile
+charges' damage, Smart Bomb damage, turret and drone `damageMultiplier`, and the beacon's armor/shield
+`<type>DamageResistanceBonus` to the ship's armor/shield resonances.
+
+**Burst projectors** (`projected[]` modules, revision 1.4.3): the AoE burst projectors (`doomsdayAOE*`, incl. Standup
+versions) apply at full strength regardless of `distance_m` (no range factor), are blocked by the target's
+`disallowOffensiveModifiers`, and are stacking-penalised. Web / paint / damp / weapon-disruption bursts modify the
+target like the single-target modules; the neutralization burst adds a drain (`energyNeutralizerAmount` every
+`duration`, × resistance) to the capacitor figures; the ECM burst adds a jam source (`scan<Type>StrengthBonus` ×
+resistance) to the jam chance; the warp-disruption burst has no stat effect. The Standup Weapon Disruptor uses the
+range factor (maxRange / falloffEffectiveness).
 
 ## Search (`search` RPC / CLI), interim
 
@@ -190,3 +208,7 @@ Conventions matching Pyfa (deliberate): volley is spooled; local nosferatu is ca
   booster fits per buff id), see "Semantics". Engine: projected Tracking Disruptors and Guidance Disruptors (Pyfa
   Effect6424 / Effect6423: target's Gunnery modules / Missile Launcher Operation charges, range factor, resistance) are
   now applied (they were a warning before). Oracle-verified, incl. new amount>1 projected-fit cases.
+- v1.4.3 (2026-10-03 06:30 CST): no request/response field changes. "Semantics" now also defines abyssal weather /
+  AoE cloud environment beacons (warfare buffs in the fleet-buff pool, drone scope, penalties), incursion system
+  effects and burst projectors (full strength, no range factor). Doomsday / lance DPS = subcycles × volley / cycle
+  (Pyfa `getVolleyParameters`). `cpu_used` / `pg_used` round like Python `round(v, 2)`. Oracle-verified (bench 1.8.0).

@@ -1,0 +1,1 @@
+{"eft": "fits/exct_cerberus.eft", "patch": {"projected": [{"kind": "module", "module": {"type_id": 40697}, "amount": 1, "distance_m": 10000},{"kind": "module", "module": {"type_id": 40699}, "amount": 1, "distance_m": 10000}]}}

@@ -1,0 +1,1 @@
+{"eft": "fits/exct_hyperion.eft", "patch": {"projected": [{"kind": "module", "module": {"type_id": 35945}, "amount": 1, "distance_m": 150000},{"kind": "module", "module": {"type_id": 47364}, "amount": 1, "distance_m": 30000}]}}
