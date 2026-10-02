@@ -200,6 +200,8 @@ pub struct WellKnown {
     pub charge_group: Vec<u32>,
     /// (requiredSkillN, requiredSkillNLevel)
     pub req_skill: Vec<(u32, u32)>,
+    /// published skill type ids, ascending
+    pub published_skills: Vec<u32>,
 }
 
 // ---------- raw serde shapes ----------
@@ -510,6 +512,12 @@ impl Dataset {
                 can_fit_type: (1..=11).map(|k| a(&format!("canFitShipType{k}"))).filter(|x| *x != 0).collect(),
                 charge_group: (1..=5).map(|k| a(&format!("chargeGroup{k}"))).filter(|x| *x != 0).collect(),
                 req_skill: (1..=6).map(|k| (a(&format!("requiredSkill{k}")), a(&format!("requiredSkill{k}Level")))).filter(|x| x.0 != 0).collect(),
+                published_skills: {
+                    let mut v: Vec<u32> = d.skills.iter().copied().filter(|s| d.types.get(s).map(|t| t.published).unwrap_or(false)).collect();
+                    v.sort_unstable();
+                    v.dedup();
+                    v
+                },
             };
             d
         })

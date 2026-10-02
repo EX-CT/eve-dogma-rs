@@ -160,7 +160,10 @@ fn tidy_mut(v: &mut Value) {
         Value::Number(n) => {
             if n.is_f64() {
                 if let Some(f) = n.as_f64() {
-                    *v = json!(round6(f));
+                    let r = round6(f);
+                    if r.to_bits() != f.to_bits() {
+                        *v = json!(r);
+                    }
                 }
             }
         }

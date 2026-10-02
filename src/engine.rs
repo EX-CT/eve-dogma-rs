@@ -269,7 +269,7 @@ fn fit_skill_context(ds: &Dataset, req: &FitRequest) -> (rustc_hash::FxHashSet<u
 /// `include_attributes` listing, so the pruning is off when attributes are requested).
 pub(crate) fn ship_touched(ds: &Dataset, req: &FitRequest) -> rustc_hash::FxHashSet<u32> {
     let mut out = rustc_hash::FxHashSet::default();
-    let mut add = |tid: u32, out: &mut rustc_hash::FxHashSet<u32>| {
+    let add = |tid: u32, out: &mut rustc_hash::FxHashSet<u32>| {
         if let Some(t) = ds.types.get(&tid) {
             for (eid, _) in t.effects.iter() {
                 if let Some(e) = ds.effects.get(eid) {
@@ -513,23 +513,35 @@ impl<'a> Fit<'a> {
         }
         // skills
         let default_level = req.character.skills.default_level.unwrap_or(0);
-        let mut levels: FxHashMap<u32, u8> = FxHashMap::default();
         // every published skill exists (untrained = level 0): ship-bonus attrs like shipBonusGC2 are
-        // scaled by a skill-level PreMul on the skill, so a missing skill would leave the raw per-level value
-        for s in &ds.skills {
-            if ds.types[s].published {
-                levels.insert(*s, default_level);
-            }
-        }
+        // scaled by a skill-level PreMul on the skill, so a missing skill would leave the raw per-level value.
+        // Request levels override (last one wins per id); the result is sorted by skill id.
+        let mut over: Vec<(u32, u8)> = Vec::new();
         for (k, v) in &req.character.skills.levels {
             if let Ok(id) = k.parse::<u32>() {
-                levels.insert(id, *v);
+                over.push((id, *v));
             } else if let Some(id) = ds.type_by_name(k) {
-                levels.insert(id, *v);
+                over.push((id, *v));
             }
         }
-        let mut lv: Vec<(u32, u8)> = levels.into_iter().collect();
-        lv.sort();
+        over.reverse(); // stable sort + dedup keeps the first = the last inserted
+        over.sort_by_key(|x| x.0);
+        over.dedup_by_key(|x| x.0);
+        let base = &ds.wk.published_skills;
+        let mut lv: Vec<(u32, u8)> = Vec::with_capacity(base.len() + over.len());
+        let (mut a, mut b) = (0, 0);
+        while a < base.len() || b < over.len() {
+            if b >= over.len() || (a < base.len() && base[a] < over[b].0) {
+                lv.push((base[a], default_level));
+                a += 1;
+            } else {
+                if a < base.len() && base[a] == over[b].0 {
+                    a += 1;
+                }
+                lv.push(over[b]);
+                b += 1;
+            }
+        }
         let (need, groups) = fit_skill_context(ds, req);
         let touched = if req.options.include_attributes.is_none() { Some(ship_touched(ds, req)) } else { None };
         let ship_t = ds.types.get(&req.ship.type_id);
