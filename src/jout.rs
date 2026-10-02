@@ -108,6 +108,7 @@ impl J {
                     out.extend_from_slice(b"null");
                 }
             }
+            J::S(Cow::Borrowed(s)) => write_static_str(out, s),
             J::S(s) => write_str(out, s),
             J::A(a) => {
                 out.push(b'[');
@@ -126,7 +127,10 @@ impl J {
                     if n > 0 {
                         out.push(b',');
                     }
-                    write_str(out, k);
+                    match k {
+                        Cow::Borrowed(k) => write_static_str(out, k),
+                        Cow::Owned(k) => write_str(out, k),
+                    }
                     out.push(b':');
                     v.write(out);
                 }
@@ -134,6 +138,15 @@ impl J {
             }
         }
     }
+}
+
+/// string literals of this crate (keys and enum-like values) never need escaping (checked in debug builds)
+#[inline]
+fn write_static_str(out: &mut Vec<u8>, s: &str) {
+    debug_assert!(!s.bytes().any(|b| b < 0x20 || b == b'"' || b == b'\\'));
+    out.push(b'"');
+    out.extend_from_slice(s.as_bytes());
+    out.push(b'"');
 }
 
 /// JSON string with serde_json's escaping
@@ -309,7 +322,7 @@ macro_rules! jx_internal {
     ({}) => { $crate::jout::J::O(Vec::new()) };
     ({ $($tt:tt)+ }) => {
         $crate::jout::J::O({
-            let mut object: Vec<(std::borrow::Cow<'static, str>, $crate::jout::J)> = Vec::new();
+            let mut object: Vec<(std::borrow::Cow<'static, str>, $crate::jout::J)> = Vec::with_capacity(8);
             $crate::jx_internal!(@object object () ($($tt)+) ($($tt)+));
             object
         })
@@ -325,7 +338,7 @@ mod tests {
     #[test]
     fn text_matches_serde_json() {
         let mk = || {
-            let mut o = jx!({"b": 1.23456789, "a": [1, -2, 3u64, null, true, "x\"y\n\u{1}"], "c": {"z": f64::NAN, "y": -0.0000001, "x": 1e300},
+            let mut o = jx!({"b": 1.23456789, "a": [1, -2, 3u64, null, true, String::from("x\"y\n\u{1}")], "c": {"z": f64::NAN, "y": -0.0000001, "x": 1e300},
                             "d": Some(2.5), "e": None::<f64>, "f": 1e-7, "g": 0.1 + 0.2});
             o["h"] = jx!(7usize);
             o["b"] = jx!(2.0);
@@ -333,5 +346,22 @@ mod tests {
             o
         };
         assert_eq!(mk().to_json(), serde_json::to_string(&mk().into_value()).unwrap());
+    }
+
+    /// `&'static str` values are written without escaping: every string literal in stats.rs (the only module that
+    /// builds J trees) must be escape-free, i.e. contain no backslash, quote (raw strings) or line break
+    #[test]
+    fn stats_literals_need_no_escaping() {
+        let src = include_str!("stats.rs");
+        assert!(!src.contains('\\'), "stats.rs: a backslash would need escaping");
+        assert!(!src.contains("r#\"") && !src.contains("'\"'"), "stats.rs: raw strings / quote chars not supported by this check");
+        let mut in_str = false;
+        for c in src.chars() {
+            if c == '"' {
+                in_str = !in_str;
+            } else if in_str && (c as u32) < 0x20 {
+                panic!("stats.rs: control character / line break inside a string literal");
+            }
+        }
     }
 }
