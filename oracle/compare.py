@@ -16,12 +16,14 @@ def ours(st):
         "hp.shield": d["hp"]["shield"], "hp.armor": d["hp"]["armor"], "hp.hull": d["hp"]["hull"],
         "ehp.shield": d["ehp"]["shield"], "ehp.armor": d["ehp"]["armor"], "ehp.hull": d["ehp"]["hull"],
         **{f"res.{l}.{k}": d["resonance"][l][k] for l in ("shield", "armor", "hull") for k in ("em", "thermal", "kinetic", "explosive")},
-        "weapon_dps": o["weapon_dps"], "weapon_volley": o["weapon_volley"], "drone_dps": o["drone_dps"], "drone_volley": o["drone_volley"],
+        "weapon_dps": o["weapon_dps"], "weapon_volley": o["weapon_volley"], "drone_dps": o["drone_dps"] + o.get("fighter_dps", 0), "drone_volley": o["drone_volley"] + o.get("fighter_volley", 0),
         "cap_capacity": c["capacity"], "cap_recharge_s": c["recharge_time_s"], "cap_stable": c["stable"],
         "cap_state": c["stable_percent"] if c["stable"] else c.get("lasts_s"),
         "max_velocity": n["max_velocity"], "align_time_s": n["align_time_s"], "mass": n["mass"], "signature_radius": n["signature_radius"],
         "warp_speed": n["warp_speed_au_s"], "max_targets": t["max_targets"], "max_target_range": t["max_range_m"],
         "scan_resolution": t["scan_resolution"], "scan_strength": t["sensor_strength"],
+        "tank.armor": d["tank"]["raw"]["armor_repair"], "tank.shield": d["tank"]["raw"]["shield_repair"],
+        "tank.hull": d["tank"]["raw"]["hull_repair"], "tank.passive": d["tank"]["raw"]["passive_shield"],
         "hi_slots": r["slots"]["high"]["total"], "med_slots": r["slots"]["mid"]["total"], "low_slots": r["slots"]["low"]["total"],
     }
 
@@ -34,6 +36,8 @@ def pyfa(s):
         out[f"hp.{l}"] = s["hp"][l]; out[f"ehp.{l}"] = s["ehp"][l]
         for k in ("em", "thermal", "kinetic", "explosive"):
             out[f"res.{l}.{k}"] = s["resonance"][l][k]
+    t = s["tank"]
+    out.update({"tank.armor": t["armorRepair"], "tank.shield": t["shieldRepair"], "tank.hull": t["hullRepair"], "tank.passive": t["passiveShield"]})
     cs = s["cap_state"]
     out["cap_state"] = cs if s["cap_stable"] else cs
     return out
@@ -53,6 +57,8 @@ PTR = {
     "signature_radius": "/navigation/signature_radius", "warp_speed": "/navigation/warp_speed_au_s",
     "max_targets": "/targeting/max_targets", "max_target_range": "/targeting/max_range_m",
     "scan_resolution": "/targeting/scan_resolution", "scan_strength": "/targeting/sensor_strength",
+    "tank.armor": "/defense/tank/raw/armor_repair", "tank.shield": "/defense/tank/raw/shield_repair",
+    "tank.hull": "/defense/tank/raw/hull_repair", "tank.passive": "/defense/tank/raw/passive_shield",
     "hi_slots": "/resources/slots/high/total", "med_slots": "/resources/slots/mid/total", "low_slots": "/resources/slots/low/total",
 }
 
@@ -77,9 +83,8 @@ def main(files):
         p = subprocess.run([BIN, "eft", f, "--skills", "5"], capture_output=True, text=True)
         if p.returncode: print(f"{name}: SKIP parse ({p.stderr.strip()})"); continue
         req = json.loads(p.stdout)
-        if req.get("fighters") or req.get("projected") or any((req.get("fleet") or {}).values()) or any(m.get("mutation") for m in req.get("modules", [])) \
-           or any(d.get("mutation") for d in req.get("drones", [])):
-            print(f"{name}: SKIP (oracle lacks fighters/projection/fleet/mutations)"); continue
+        if req.get("projected") or any((req.get("fleet") or {}).values()) :
+            print(f"{name}: SKIP (oracle lacks projection/fleet)"); continue
         rp = TMP / f"{name}.json"; rp.write_text(json.dumps(req)); reqs.append((name, rp))
     env = dict(os.environ, PYTHONPATH=f"{REF}/stubs", ORACLE_REPEAT="3")
     pr = subprocess.run([f"{REF}/pyfa-venv/bin/python", str(ROOT / "oracle/pyfa_oracle.py"), *[str(p) for _, p in reqs]],

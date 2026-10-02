@@ -22,6 +22,7 @@ from eos.saveddata.ship import Ship  # noqa: E402
 from eos.saveddata.citadel import Citadel  # noqa: E402
 from eos.saveddata.module import Module  # noqa: E402
 from eos.saveddata.drone import Drone  # noqa: E402
+from eos.saveddata.fighter import Fighter  # noqa: E402
 from eos.saveddata.implant import Implant  # noqa: E402
 from eos.saveddata.booster import Booster  # noqa: E402
 from eos.saveddata.damagePattern import DamagePattern  # noqa: E402
@@ -60,6 +61,21 @@ def item(tid):
     return it
 
 
+def mutated(cls, spec):
+    mu = spec.get("mutation")
+    if not mu:
+        return cls(item(spec["type_id"]))
+    dyn = eos.db.getDynamicItem(mu["mutaplasmid_type_id"])
+    if dyn is None:
+        raise KeyError("mutaplasmid %s not in Pyfa eve.db" % mu["mutaplasmid_type_id"])
+    obj = cls(dyn.resultingItem, item(mu["base_type_id"]), dyn)
+    vals = {int(k): v for k, v in mu.get("attributes", {}).items()}
+    for aid, m in obj.mutators.items():
+        if aid in vals:
+            m.value = vals[aid]
+    return obj
+
+
 def build(req):
     sh = item(req["ship"]["type_id"])
     ship = Citadel(sh) if sh.category.name == "Structure" else Ship(sh)
@@ -68,7 +84,7 @@ def build(req):
     if req["ship"].get("mode_type_id"):
         fit.mode = ship.validateModeItem(eos.db.getItem(req["ship"]["mode_type_id"]))
     for m in req.get("modules", []):
-        mod = Module(item(m["type_id"]))
+        mod = mutated(Module, m)
         if m.get("charge_type_id"):
             mod.charge = item(m["charge_type_id"])
         fit.modules.append(mod)
@@ -76,11 +92,18 @@ def build(req):
         st = STATES[m.get("state", "online")]
         mod.state = st if mod.isValidState(st) else FittingModuleState.ONLINE
     for d in req.get("drones", []):
-        dr = Drone(item(d["type_id"]))
+        dr = mutated(Drone, d)
         dr.amount = d.get("quantity", 1)
         dr.amountActive = d.get("active", 0) or 0
         fit.drones.append(dr)
         dr.owner = fit
+    for f in req.get("fighters", []):
+        fi = Fighter(item(f["type_id"]))
+        if f.get("quantity"):
+            fi.amount = f["quantity"]
+        fi.active = bool(f.get("active", True))
+        fit.fighters.append(fi)
+        fi.owner = fit
     for i in req.get("implants", []):
         fit.implants.append(Implant(item(i)))
     for b in req.get("boosters", []):

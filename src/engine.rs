@@ -323,10 +323,35 @@ impl<'a> Fit<'a> {
             let sq = ds.attr_id("fighterSquadronMaxSize");
             let maxsq = fit.items[idx].attrs.get(&sq).map(|a| a.base as u32).unwrap_or(1);
             let it = &mut fit.items[idx];
-            it.quantity = f.quantity.unwrap_or(maxsq).max(1);
+            it.quantity = f.quantity.unwrap_or(maxsq).clamp(1, maxsq.max(1));
+            if f.quantity.unwrap_or(0) > maxsq {
+                fit.warnings.push(format!("fighters/{i}: squadron size {} capped to {maxsq}", f.quantity.unwrap_or(0)));
+            }
             it.active_count = if f.active { it.quantity } else { 0 };
             it.state = if f.active { State::Active } else { State::Offline };
-            it.fighter_abilities = f.abilities.clone();
+            it.fighter_abilities = f.abilities.clone().or_else(|| {
+                // Pyfa default: standard attack on; other abilities (except MWD/evasive/MJD) on only if they
+                // come before the standard attack in effect order
+                let mut ids: Vec<u32> = it.effects.iter().map(|(e, _)| *e).collect();
+                ids.sort();
+                let mut on = Vec::new();
+                let mut std_seen = false;
+                for e in ids {
+                    let Some(n) = ds.effects.get(&e).map(|x| x.name.as_str()) else { continue };
+                    if !n.starts_with("fighterAbility") {
+                        continue;
+                    }
+                    if n == "fighterAbilityAttackM" {
+                        on.push(e);
+                        std_seen = true;
+                    } else if !std_seen
+                        && !matches!(n, "fighterAbilityMicroWarpDrive" | "fighterAbilityEvasiveManeuvers" | "fighterAbilityMicroJumpDrive")
+                    {
+                        on.push(e);
+                    }
+                }
+                Some(on)
+            });
             it.req_index = Some(i);
         }
         for (i, imp) in req.implants.iter().enumerate() {
