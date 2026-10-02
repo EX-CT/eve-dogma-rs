@@ -150,8 +150,9 @@ charges, mutations), for the fit as Pyfa's GUI holds it (after `fill()`):
 - Cargo `Name xN` sorted by (category name, group name, type name).
 - Mutation details: `[N] Base`, `  Mutaplasmid`, `  attr value, …` (attribute names sorted, Pyfa `floatUnerr`
   values in Python float repr, e.g. `30.0`).
-- **T3D mode:** Pyfa's exporter writes no mode line, so neither do we (`eft_parse` still accepts a mode line, and a
-  missing mode defaults to the first mode). Verified against Pyfa on all bench fits (tests/eft_export_parity.rs).
+- **T3D mode (coordinator ruling 2026-10-03 06:14 CST):** follow Pyfa's actual exporter: `eft_export` writes **no**
+  mode line (the earlier ruling text "incl. T3D mode line" is superseded). `eft_parse` still accepts a mode line, and
+  a missing mode defaults to the first mode. Verified against Pyfa on all bench fits (tests/eft_export_parity.rs).
 
 ## FitStats (top level)
 
@@ -202,6 +203,8 @@ Conventions matching Pyfa (deliberate): volley is spooled; local nosferatu is ca
   (4) `eft_export` matches Pyfa's exporter byte for byte (section/blank-line layout, empty-slot lines, ` /offline`
   lowercase, drone/fighter/implant/booster/cargo ordering, mutation block; no T3D mode line because Pyfa writes none);
   (5) duplicate changelog heading removed. Engine speed work (skill pruning, modifier target index) changes no output.
+  Ruling 2026-10-03 06:14 CST: the T3D mode line follows Pyfa's actual exporter (none); wording in "EFT export" updated
+  (text only, no revision bump, bench frozen at 1.8.0).
 - v1.4.2 (2026-10-03 05:45 CST): precise definitions of `capacitor.use_gj_s` / `injected_gj_s` / `delta_gj_s`,
   `projected[].amount` (incl. projected fits: computed once, every active module/drone/fighter projected `amount` times,
   each copy a separate penalised modifier), and fleet-buff precedence (explicit `fleet.buffs` override own bursts and
