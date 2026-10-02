@@ -192,7 +192,10 @@ pub struct Dataset {
     pub names_zh: FxHashMap<u32, String>,
     attr_by_name: FxHashMap<String, u32>,
     effect_by_name: FxHashMap<String, u32>,
-    type_by_name: FxHashMap<String, u32>,
+    /// lowercase name -> type id, built on first use (not stored in the binary cache: most calcs never need it).
+    /// A published type wins over unpublished ones of the same name; otherwise the lowest id.
+    #[serde(skip)]
+    type_by_name: std::sync::OnceLock<FxHashMap<String, u32>>,
     /// all skill type ids (category 16)
     pub skills: Vec<u32>,
     /// attribute ids looked up by name on hot paths, resolved once at load
@@ -444,14 +447,10 @@ impl Dataset {
         }
         let categories = raw.categories.into_iter().map(|(k, c)| (k.parse().unwrap_or(0), c.name.unwrap_or_default())).collect();
         let mut types = FxHashMap::default();
-        let mut type_by_name = FxHashMap::default();
         let mut skills = Vec::new();
         for (k, t) in raw.types {
             let id: u32 = k.parse().unwrap_or(0);
             let name = t.name.unwrap_or_default();
-            if t.published || !type_by_name.contains_key(&name.to_lowercase()) {
-                type_by_name.insert(name.to_lowercase(), id);
-            }
             if t.category == 16 {
                 skills.push(id);
             }
@@ -516,7 +515,7 @@ impl Dataset {
             names_zh,
             attr_by_name,
             effect_by_name,
-            type_by_name,
+            type_by_name: std::sync::OnceLock::new(),
             skills,
             wk: WellKnown::default(),
         })
@@ -550,7 +549,24 @@ impl Dataset {
         *self.effect_by_name.get(name).unwrap_or(&0)
     }
     pub fn type_by_name(&self, name: &str) -> Option<u32> {
-        self.type_by_name.get(&name.trim().to_lowercase()).copied()
+        self.type_by_name
+            .get_or_init(|| {
+                let mut ids: Vec<(&u32, &TypeInfo)> = self.types.iter().collect();
+                ids.sort_unstable_by_key(|(id, _)| **id);
+                let mut m: FxHashMap<String, u32> = FxHashMap::with_capacity_and_hasher(ids.len(), Default::default());
+                for (id, t) in ids {
+                    let k = t.name.to_lowercase();
+                    match m.get(&k) {
+                        Some(prev) if !(t.published && !self.types[prev].published) => {}
+                        _ => {
+                            m.insert(k, *id);
+                        }
+                    }
+                }
+                m
+            })
+            .get(&name.trim().to_lowercase())
+            .copied()
     }
     pub fn attr_default(&self, id: u32) -> f64 {
         self.attrs.get(&id).map(|a| a.default).unwrap_or(0.0)
