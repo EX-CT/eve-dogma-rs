@@ -1,6 +1,5 @@
 //! Event-driven capacitor simulator (behaviour-compatible with Pyfa eos/capSim.py, LGPL).
 use std::cmp::Ordering;
-use std::collections::BinaryHeap;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Drain {
@@ -40,37 +39,97 @@ struct Source {
 
 /// heap entry: Pyfa's heapq orders `[t, duration, capNeed, shot, clipSize, reloadTime, isInjector]` then insertion
 /// order; the static fields are replaced by their precomputed ranks (r1 = (duration, capNeed), r2 = (clip, reload,
-/// inj)), which gives exactly the same order with a smaller, cheaper-to-compare entry.
+/// inj)), which gives exactly the same order. The order is packed into three u64 keys compared lexicographically:
+/// k0 = bits of t (t >= 0, so the IEEE bit pattern orders like the value), k1 = r1 << 32 | shot, k2 = r2 << 40 | seq.
 #[derive(Debug, Clone, Copy)]
 struct Ev {
-    t: f64,
-    r1: u32,
-    shot: u32,
-    r2: u32,
+    k0: u64,
+    k1: u64,
+    k2: u64,
     src: u32,
-    seq: u64,
 }
-impl PartialEq for Ev {
-    fn eq(&self, o: &Self) -> bool {
-        self.cmp(o) == Ordering::Equal
-    }
-}
-impl Eq for Ev {}
-impl PartialOrd for Ev {
-    fn partial_cmp(&self, o: &Self) -> Option<Ordering> {
-        Some(self.cmp(o))
-    }
-}
-impl Ord for Ev {
+impl Ev {
     #[inline]
-    fn cmp(&self, o: &Self) -> Ordering {
-        // min-heap (BinaryHeap is a max-heap): reversed comparisons
-        o.t.partial_cmp(&self.t)
-            .unwrap_or(Ordering::Equal)
-            .then_with(|| o.r1.cmp(&self.r1))
-            .then_with(|| o.shot.cmp(&self.shot))
-            .then_with(|| o.r2.cmp(&self.r2))
-            .then_with(|| o.seq.cmp(&self.seq))
+    fn new(t: f64, r1: u32, shot: u32, r2: u32, src: u32, seq: u64) -> Ev {
+        debug_assert!(t >= 0.0 && seq < (1 << 40));
+        Ev { k0: (t + 0.0).to_bits(), k1: (r1 as u64) << 32 | shot as u64, k2: (r2 as u64) << 40 | seq, src }
+    }
+    #[inline]
+    fn t(&self) -> f64 {
+        f64::from_bits(self.k0)
+    }
+    #[inline]
+    fn shot(&self) -> u32 {
+        self.k1 as u32
+    }
+    /// next activation: new time, shot and insertion sequence (rank fields unchanged)
+    #[inline]
+    fn reschedule(&mut self, t: f64, shot: u32, seq: u64) {
+        self.k0 = (t + 0.0).to_bits();
+        self.k1 = (self.k1 & !0xffff_ffff) | shot as u64;
+        self.k2 = (self.k2 & !((1u64 << 40) - 1)) | seq;
+    }
+    #[inline]
+    fn lt(&self, o: &Ev) -> bool {
+        (self.k0, self.k1, self.k2) < (o.k0, o.k1, o.k2)
+    }
+}
+
+/// minimal binary min-heap on `Ev::lt` (entries are small Copy values)
+struct Heap {
+    v: Vec<Ev>,
+}
+impl Heap {
+    #[inline]
+    fn peek(&self) -> Option<&Ev> {
+        self.v.first()
+    }
+    fn push(&mut self, e: Ev) {
+        let mut i = self.v.len();
+        self.v.push(e);
+        while i > 0 {
+            let p = (i - 1) / 2;
+            if e.lt(&self.v[p]) {
+                self.v[i] = self.v[p];
+                i = p;
+            } else {
+                break;
+            }
+        }
+        self.v[i] = e;
+    }
+    #[inline]
+    fn sift_down(&mut self, mut i: usize, e: Ev) {
+        let n = self.v.len();
+        loop {
+            let l = 2 * i + 1;
+            if l >= n {
+                break;
+            }
+            let r = l + 1;
+            let c = if r < n && self.v[r].lt(&self.v[l]) { r } else { l };
+            if self.v[c].lt(&e) {
+                self.v[i] = self.v[c];
+                i = c;
+            } else {
+                break;
+            }
+        }
+        self.v[i] = e;
+    }
+    /// replace the top entry and restore the heap
+    #[inline]
+    fn replace_top(&mut self, e: Ev) {
+        self.sift_down(0, e);
+    }
+    fn pop(&mut self) -> Option<Ev> {
+        let last = self.v.pop()?;
+        if self.v.is_empty() {
+            return Some(last);
+        }
+        let top = self.v[0];
+        self.sift_down(0, last);
+        Some(top)
     }
 }
 
@@ -81,7 +140,7 @@ fn gcd(a: u64, b: u64) -> u64 {
 #[allow(unused_assignments)] // take!() before a break
 pub fn simulate(capacity: f64, recharge_ms: f64, drains: &[Drain], start_frac: f64, reload: bool, stagger: bool, t_max_ms: f64) -> CapResult {
     let tau = recharge_ms / 5.0;
-    let mut heap: BinaryHeap<Ev> = BinaryHeap::new();
+    let mut heap = Heap { v: Vec::with_capacity(drains.len() + 4) };
     // (source, initial t) in insertion order; ranks are assigned once all sources are known
     let mut sources: Vec<Source> = Vec::new();
     let mut initial: Vec<(u32, f64)> = Vec::new();
@@ -156,7 +215,7 @@ pub fn simulate(capacity: f64, recharge_ms: f64, drains: &[Drain], start_frac: f
     let r1 = rank(&|a, b| fc(a.duration, b.duration).then_with(|| fc(a.cap_need, b.cap_need)));
     let r2 = rank(&|a, b| a.clip.cmp(&b.clip).then_with(|| fc(a.reload, b.reload)).then_with(|| a.inj.cmp(&b.inj)));
     for &(si, t) in &initial {
-        heap.push(Ev { t, r1: r1[si as usize], shot: 0, r2: r2[si as usize], src: si, seq });
+        heap.push(Ev::new(t, r1[si as usize], 0, r2[si as usize], si, seq));
         seq += 1;
     }
     let period = if disable_period || period as f64 > t_max_ms { t_max_ms } else { period as f64 };
@@ -194,7 +253,7 @@ pub fn simulate(capacity: f64, recharge_ms: f64, drains: &[Drain], start_frac: f
             };
         }
         let sv = sources[ev.src as usize];
-        let t_now = ev.t;
+        let t_now = ev.t();
         if t_now >= t_max_ms {
             take!();
             last_ev = Some(ev);
@@ -254,13 +313,12 @@ pub fn simulate(capacity: f64, recharge_ms: f64, drains: &[Drain], start_frac: f
                 let mut inj = awaiting.remove(pick);
                 let is = sources[inj.src as usize];
                 cap = (cap - is.cap_need).min(cap_max);
-                inj.t = t_now + is.duration;
-                inj.shot += 1;
-                if is.clip > 0 && inj.shot % is.clip == 0 {
-                    inj.shot = 0;
-                    inj.t += is.reload;
+                let (mut nt, mut shot) = (t_now + is.duration, inj.shot() + 1);
+                if is.clip > 0 && shot % is.clip == 0 {
+                    shot = 0;
+                    nt += is.reload;
                 }
-                inj.seq = seq;
+                inj.reschedule(nt, shot, seq);
                 seq += 1;
                 heap.push(inj);
             }
@@ -286,32 +344,30 @@ pub fn simulate(capacity: f64, recharge_ms: f64, drains: &[Drain], start_frac: f
             let mut inj = awaiting.remove(pick);
             let is = sources[inj.src as usize];
             cap = (cap - is.cap_need).min(cap_max);
-            inj.t = t_now + is.duration;
-            inj.shot += 1;
-            if is.clip > 0 && inj.shot % is.clip == 0 {
-                inj.shot = 0;
-                inj.t += is.reload;
+            let (mut nt, mut shot) = (t_now + is.duration, inj.shot() + 1);
+            if is.clip > 0 && shot % is.clip == 0 {
+                shot = 0;
+                nt += is.reload;
             }
-            inj.seq = seq;
+            inj.reschedule(nt, shot, seq);
             seq += 1;
             heap.push(inj);
         }
-        ev.t = t_now + sv.duration;
-        ev.shot += 1;
-        if sv.clip > 0 && ev.shot % sv.clip == 0 {
-            ev.shot = 0;
-            ev.t += sv.reload;
+        let (mut nt, mut shot) = (t_now + sv.duration, ev.shot() + 1);
+        if sv.clip > 0 && shot % sv.clip == 0 {
+            shot = 0;
+            nt += sv.reload;
         }
-        ev.seq = seq;
+        ev.reschedule(nt, shot, seq);
         seq += 1;
         if in_heap {
-            *heap.peek_mut().unwrap() = ev;
+            heap.replace_top(ev);
         } else {
             heap.push(ev);
         }
     }
     // EVE's own stability estimate
-    let mut all: Vec<Ev> = heap.into_vec();
+    let mut all: Vec<Ev> = heap.v;
     if let Some(e) = last_ev {
         all.push(e);
     }
