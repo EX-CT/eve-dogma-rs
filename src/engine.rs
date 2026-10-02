@@ -80,7 +80,7 @@ impl Attr {
 }
 
 #[derive(Debug)]
-pub struct Item {
+pub struct Item<'a> {
     pub type_id: u32,
     pub group: u32,
     pub category: u32,
@@ -95,6 +95,9 @@ pub struct Item {
     pub req_index: Option<usize>,
     pub quantity: u32,
     pub active_count: u32,
+    /// the type's base attributes (sorted by id, borrowed from the dataset); only attributes that are
+    /// overridden or modified get an entry in `attrs`, which takes precedence
+    pub tattrs: &'a [(u32, f64)],
     pub attrs: FxHashMap<u32, Attr>,
     pub req_skills: Vec<u32>,
     /// effect ids carried by this item (own + mutation base)
@@ -107,7 +110,7 @@ pub struct Item {
 
 pub struct Fit<'a> {
     pub ds: &'a Dataset,
-    pub items: Vec<Item>,
+    pub items: Vec<Item<'a>>,
     pub ship: usize,
     pub char: usize,
     pub warnings: Vec<String>,
@@ -130,7 +133,7 @@ struct TIndex {
 }
 
 impl TIndex {
-    fn build(items: &[Item]) -> TIndex {
+    fn build(items: &[Item<'_>]) -> TIndex {
         let mut t = TIndex::default();
         for (i, it) in items.iter().enumerate() {
             if it.loc == Loc::Ship {
@@ -318,6 +321,7 @@ impl<'a> Fit<'a> {
             req_index: None,
             quantity: 1,
             active_count: 0,
+            tattrs: &t.attrs,
             attrs: FxHashMap::default(),
             req_skills: Vec::new(),
             effects: t.effects.clone(),
@@ -363,7 +367,7 @@ impl<'a> Fit<'a> {
                     .filter(|v| *v != 0)
                     .collect();
             }
-            if item.attrs.get(&4).map(|a| a.base).unwrap_or(0.0) == 0.0 && base.mass != 0.0 {
+            if item.base_opt(4).unwrap_or(0.0) == 0.0 && base.mass != 0.0 {
                 item.attrs.insert(4, Attr::new(base.mass));
             }
         }
@@ -491,7 +495,7 @@ impl<'a> Fit<'a> {
         for (i, f) in req.fighters.iter().enumerate() {
             let idx = fit.new_item(f.type_id, Kind::Fighter, Loc::Space, &format!("/fighters/{i}"))?;
             let sq = ds.attr_id("fighterSquadronMaxSize");
-            let maxsq = fit.items[idx].attrs.get(&sq).map(|a| a.base as u32).unwrap_or(1);
+            let maxsq = fit.items[idx].base_opt(sq).map(|a| a as u32).unwrap_or(1);
             let it = &mut fit.items[idx];
             it.quantity = f.quantity.unwrap_or(maxsq).clamp(1, maxsq.max(1));
             if f.quantity.unwrap_or(0) > maxsq {
@@ -553,7 +557,7 @@ impl<'a> Fit<'a> {
                         for _ in 0..p.amount.max(1) {
                             let idx = fit.new_item(f.type_id, Kind::Projected, Loc::Nowhere, &format!("/projected/{i}"))?;
                             let sq = ds.attr_id("fighterSquadronMaxSize");
-                            let maxsq = fit.items[idx].attrs.get(&sq).map(|a| a.base as u32).unwrap_or(1).max(1);
+                            let maxsq = fit.items[idx].base_opt(sq).map(|a| a as u32).unwrap_or(1).max(1);
                             let it = &mut fit.items[idx];
                             it.owned = false;
                             it.state = if f.active { State::Active } else { State::Offline };
@@ -589,7 +593,7 @@ impl<'a> Fit<'a> {
                             if copies == 0 {
                                 continue;
                             }
-                            let vals: FxHashMap<u32, f64> = it.attrs.keys().map(|&a| (a, src.get(si, a))).collect();
+                            let vals: FxHashMap<u32, f64> = it.attr_ids().into_iter().map(|a| (a, src.get(si, a))).collect();
                             frozen.push((it.type_id, copies, vals, it.kind, it.quantity, it.fighter_abilities.clone()));
                         }
                         for (type_id, copies, vals, kind, qty, abil) in frozen {
@@ -629,7 +633,7 @@ impl<'a> Fit<'a> {
             };
             let (src_id, dst_id) = (ds.attr_id(src), ds.attr_id("securityModifier"));
             for it in fit.items.iter_mut() {
-                if let Some(v) = it.attrs.get(&src_id).map(|a| a.base) {
+                if let Some(v) = it.base_opt(src_id) {
                     it.attrs.insert(dst_id, Attr::new(v));
                 }
             }
@@ -651,7 +655,9 @@ impl<'a> Fit<'a> {
         let stackable = ds.attrs.get(&attr).map(|a| a.stackable).unwrap_or(true);
         let penalized = !stackable && !EXEMPT_CATEGORIES.contains(&source_cat);
         let def = ds.attr_default(attr);
-        let a = self.items[target].attrs.entry(attr).or_insert_with(|| Attr::new(def));
+        let it = &mut self.items[target];
+        let base = it.tbase(attr).unwrap_or(def);
+        let a = it.attrs.entry(attr).or_insert_with(|| Attr::new(base));
         a.mods.push(AMod { op, penalized, src, source_item });
     }
 
@@ -935,13 +941,13 @@ impl<'a> Fit<'a> {
             }
             let factor = {
                 let it = &self.items[i];
-                let opt = e.range_attr.and_then(|a| it.attrs.get(&a)).map(|a| a.base).unwrap_or(0.0);
-                let fo = e.falloff_attr.and_then(|a| it.attrs.get(&a)).map(|a| a.base).unwrap_or(0.0);
+                let opt = e.range_attr.and_then(|a| it.base_opt(a)).unwrap_or(0.0);
+                let fo = e.falloff_attr.and_then(|a| it.base_opt(a)).unwrap_or(0.0);
                 crate::stats::range_factor(opt, fo, it.distance, true)
             };
             let resist = e.resistance_attr.unwrap_or_else(|| {
                 let it = &self.items[i];
-                let look = |n: &str| it.attrs.get(&ds.attr_id(n)).map(|a| a.base as u32).unwrap_or(0);
+                let look = |n: &str| it.base_opt(ds.attr_id(n)).map(|a| a as u32).unwrap_or(0);
                 if e.name.starts_with("fighterAbility") {
                     let r = look(&format!("{}ResistanceID", e.name));
                     if r != 0 { r } else { look(&format!("{}RemoteResistanceID", e.name)) }
@@ -949,7 +955,7 @@ impl<'a> Fit<'a> {
                     look("remoteResistanceID")
                 }
             });
-            let target_offense_ok = self.items[ship].attrs.get(&ds.attr_id("disallowOffensiveModifiers")).map(|a| a.base == 0.0).unwrap_or(true);
+            let target_offense_ok = self.items[ship].base_opt(ds.attr_id("disallowOffensiveModifiers")).map(|a| a == 0.0).unwrap_or(true);
             let push = |fit: &mut Fit, target_attr: u32, src_attr: u32, op: i32| {
                 let mul = op == 4 || op == 0;
                 fit.push_mod(
@@ -970,7 +976,7 @@ impl<'a> Fit<'a> {
                 continue;
             }
             let name = e.name.as_str();
-            let pbase = |n: &str| self.items[i].attrs.get(&ds.attr_id(n)).map(|a| a.base).unwrap_or(0.0);
+            let pbase = |n: &str| self.items[i].base_opt(ds.attr_id(n)).unwrap_or(0.0);
             if name == "fighterAbilityStasisWebifier" {
                 if target_offense_ok {
                     let f = crate::stats::range_factor(pbase("fighterAbilityStasisWebifierOptimalRange"), pbase("fighterAbilityStasisWebifierFalloffRange"), self.items[i].distance, true) * qty;
@@ -1016,16 +1022,16 @@ impl<'a> Fit<'a> {
         let ds = self.ds;
         let a = |n: &str| ds.attr_id(n);
         let it = &self.items[i];
-        let base = |n: &str| it.attrs.get(&ds.attr_id(n)).map(|x| x.base).unwrap_or(0.0);
+        let base = |n: &str| it.base_opt(ds.attr_id(n)).unwrap_or(0.0);
         let dist = it.distance;
         let falloff_factor = || crate::stats::range_factor(base("maxRange"), base("falloffEffectiveness"), dist, true);
         let gate = |opt: f64| if opt < dist.unwrap_or(0.0) { 0.0 } else { 1.0 };
-        let no_assist = self.items[self.ship].attrs.get(&a("disallowAssistance")).map(|x| x.base != 0.0).unwrap_or(false);
+        let no_assist = self.items[self.ship].base_opt(a("disallowAssistance")).map(|x| x != 0.0).unwrap_or(false);
         let rep = |layer: u8, amt: &str, mult: f64, factor: f64| {
             if no_assist { vec![] } else { vec![ProjSpecial::Rep { item: i, layer, amount: a(amt), mult, factor }] }
         };
         let drain = |amt: &str, dur: &str, factor: f64, sign: f64| vec![ProjSpecial::Drain { item: i, amount: a(amt), duration: a(dur), factor, resist, sign }];
-        let no_offense = self.items[self.ship].attrs.get(&a("disallowOffensiveModifiers")).map(|x| x.base != 0.0).unwrap_or(false);
+        let no_offense = self.items[self.ship].base_opt(a("disallowOffensiveModifiers")).map(|x| x != 0.0).unwrap_or(false);
         let ecm = |fighter: bool, factor: f64| if no_offense { vec![] } else { vec![ProjSpecial::Ecm { item: i, fighter, factor, resist }] };
         let paste = it.charge.map(|c| ds.types.get(&self.items[c].type_id).map(|t| t.name == "Nanite Repair Paste").unwrap_or(false)).unwrap_or(false);
         Some(match name {
@@ -1259,22 +1265,46 @@ impl<'a> Fit<'a> {
 
     // ---------------------------------------------------------------- evaluation
     pub fn get(&self, item: usize, attr: u32) -> f64 {
-        match self.items[item].attrs.get(&attr) {
+        let it = &self.items[item];
+        match it.attrs.get(&attr) {
             Some(a) => self.eval(item, attr, a),
-            None => self.ds.attr_default(attr),
+            None => match it.tbase(attr) {
+                Some(b) => self.finish(item, attr, b),
+                None => self.ds.attr_default(attr),
+            },
         }
     }
 
     pub fn get_opt(&self, item: usize, attr: u32) -> Option<f64> {
-        self.items[item].attrs.get(&attr).map(|a| self.eval(item, attr, a))
+        let it = &self.items[item];
+        match it.attrs.get(&attr) {
+            Some(a) => Some(self.eval(item, attr, a)),
+            None => it.tbase(attr).map(|b| self.finish(item, attr, b)),
+        }
     }
 
     pub fn has(&self, item: usize, attr: u32) -> bool {
-        self.items[item].attrs.contains_key(&attr)
+        self.items[item].has_attr(attr)
     }
 
     pub fn base(&self, item: usize, attr: u32) -> f64 {
-        self.items[item].attrs.get(&attr).map(|a| a.base).unwrap_or_else(|| self.ds.attr_default(attr))
+        self.items[item].base_opt(attr).unwrap_or_else(|| self.ds.attr_default(attr))
+    }
+
+    /// value of an unmodified attribute: base with the attribute's min/max caps and fitting rounding
+    fn finish(&self, item: usize, attr_id: u32, base: f64) -> f64 {
+        let Some(info) = self.ds.attrs.get(&attr_id) else { return base };
+        let mut val = base;
+        if let Some(mn) = info.min_attr {
+            val = val.max(self.get(item, mn));
+        }
+        if let Some(mx) = info.max_attr {
+            val = val.min(self.get(item, mx));
+        }
+        if info.round2 {
+            val = (val * 100.0).round() / 100.0;
+        }
+        val
     }
 
     fn src_value(&self, s: &Src) -> f64 {
@@ -1387,7 +1417,7 @@ impl<'a> Fit<'a> {
             if let Some(mx) = info.max_attr {
                 val = val.min(self.get(item, mx));
             }
-            if matches!(info.name.as_str(), "cpu" | "power" | "cpuOutput" | "powerOutput") {
+            if info.round2 {
                 val = (val * 100.0).round() / 100.0;
             }
         }
@@ -1397,16 +1427,42 @@ impl<'a> Fit<'a> {
     }
 }
 
-fn set_type_attrs(item: &mut Item, t: &TypeInfo) {
-    item.attrs.reserve(t.attrs.len() + 6);
-    for (a, v) in &t.attrs {
-        item.attrs.insert(*a, Attr::new(*v));
-    }
-    // type-level fields are authoritative (mass/capacity/volume/radius)
+fn set_type_attrs(item: &mut Item<'_>, t: &TypeInfo) {
+    // base attributes stay in the dataset (item.tattrs); type-level fields are authoritative
+    // (mass/capacity/volume/radius) and only materialised when they differ
     for (a, v) in [(4u32, t.mass), (38, t.capacity), (161, t.volume), (162, t.radius)] {
-        if v != 0.0 || !item.attrs.contains_key(&a) {
-            item.attrs.insert(a, Attr::new(v));
+        match item.tbase(a) {
+            Some(b) if b == v || v == 0.0 => {}
+            _ => {
+                item.attrs.insert(a, Attr::new(v));
+            }
         }
+    }
+}
+
+impl Item<'_> {
+    /// dataset base value of an attribute of this item's type
+    #[inline]
+    pub fn tbase(&self, attr: u32) -> Option<f64> {
+        self.tattrs.binary_search_by_key(&attr, |x| x.0).ok().map(|i| self.tattrs[i].1)
+    }
+    /// unmodified base value (override/mutation or dataset), None if the type lacks the attribute
+    #[inline]
+    pub fn base_opt(&self, attr: u32) -> Option<f64> {
+        match self.attrs.get(&attr) {
+            Some(a) => Some(a.base),
+            None => self.tbase(attr),
+        }
+    }
+    pub fn has_attr(&self, attr: u32) -> bool {
+        self.attrs.contains_key(&attr) || self.tbase(attr).is_some()
+    }
+    /// all attribute ids present on the item (sorted)
+    pub fn attr_ids(&self) -> Vec<u32> {
+        let mut k: Vec<u32> = self.tattrs.iter().map(|x| x.0).chain(self.attrs.keys().copied()).collect();
+        k.sort_unstable();
+        k.dedup();
+        k
     }
 }
 

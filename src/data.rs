@@ -15,6 +15,8 @@ pub struct AttrInfo {
     pub max_attr: Option<u32>,
     pub unit: Option<u32>,
     pub display: Option<String>,
+    /// cpu / power / cpuOutput / powerOutput are rounded to 2 decimals (Pyfa)
+    pub round2: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -88,7 +90,8 @@ pub struct TypeInfo {
 
 impl TypeInfo {
     pub fn attr(&self, id: u32) -> Option<f64> {
-        self.attrs.iter().find(|(a, _)| *a == id).map(|(_, v)| *v)
+        // attrs are sorted by id at load
+        self.attrs.binary_search_by_key(&id, |x| x.0).ok().map(|i| self.attrs[i].1)
     }
     pub fn has_effect(&self, id: u32) -> bool {
         self.effects.iter().any(|(e, _)| *e == id)
@@ -291,6 +294,7 @@ impl Dataset {
                 id,
                 AttrInfo {
                     id,
+                    round2: matches!(a.name.as_str(), "cpu" | "power" | "cpuOutput" | "powerOutput"),
                     name: a.name,
                     default: a.default,
                     stackable: a.stackable,

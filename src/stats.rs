@@ -817,8 +817,7 @@ impl<'a> Fit<'a> {
     }
 
     pub fn dump_attrs(&self, i: usize) -> Value {
-        let mut keys: Vec<u32> = self.items[i].attrs.keys().copied().collect();
-        keys.sort();
+        let keys = self.items[i].attr_ids();
         let mut m = Map::new();
         for k in keys {
             let name = self.ds.attrs.get(&k).map(|a| a.name.clone()).unwrap_or_else(|| k.to_string());
@@ -934,7 +933,7 @@ impl<'a> Fit<'a> {
         // skills
         let mut have: rustc_hash::FxHashMap<u32, f64> = Default::default();
         for it in self.items.iter().filter(|i| i.kind == Kind::Skill) {
-            have.insert(it.type_id, it.attrs.get(&crate::engine::ATTR_SKILL_LEVEL).map(|a| a.base).unwrap_or(0.0));
+            have.insert(it.type_id, it.base_opt(crate::engine::ATTR_SKILL_LEVEL).unwrap_or(0.0));
         }
         let lvl_attrs = ["requiredSkill1Level", "requiredSkill2Level", "requiredSkill3Level", "requiredSkill4Level", "requiredSkill5Level", "requiredSkill6Level"];
         let skill_attrs = ["requiredSkill1", "requiredSkill2", "requiredSkill3", "requiredSkill4", "requiredSkill5", "requiredSkill6"];
