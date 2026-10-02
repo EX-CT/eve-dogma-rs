@@ -545,7 +545,13 @@ impl<'a> Fit<'a> {
                         continue;
                     }
                     // a module without charge cannot reach otherID
-                    let targets = self.targets(i, m.func, m.domain, m.extra);
+                    // EXCT convention: skill filter 0 = the type owning the effect (skill self-bonuses)
+                    let extra = if m.extra == 0 && matches!(m.func, Func::LocationRequiredSkill | Func::OwnerRequiredSkill) {
+                        self.items[i].type_id
+                    } else {
+                        m.extra
+                    };
+                    let targets = self.targets(i, m.func, m.domain, extra);
                     for t in targets {
                         self.push_mod(t, m.modified, m.op, Src::Attr { item: i, attr: m.modifying }, i, src_cat);
                     }

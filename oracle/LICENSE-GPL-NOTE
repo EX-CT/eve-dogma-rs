@@ -1,0 +1,2 @@
+oracle/pyfa_oracle.py imports Pyfa (GPL-3.0-or-later / eos LGPL-2.0-or-later) and is therefore distributed under
+GPL-3.0-or-later. It is a separate test tool that is never compiled into or linked with the eve-dogma library.
