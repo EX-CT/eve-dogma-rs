@@ -264,11 +264,11 @@ impl<'a> Fit<'a> {
         // skills
         let default_level = req.character.skills.default_level.unwrap_or(0);
         let mut levels: FxHashMap<u32, u8> = FxHashMap::default();
-        if default_level > 0 {
-            for s in &ds.skills {
-                if ds.types[s].published {
-                    levels.insert(*s, default_level);
-                }
+        // every published skill exists (untrained = level 0): ship-bonus attrs like shipBonusGC2 are
+        // scaled by a skill-level PreMul on the skill, so a missing skill would leave the raw per-level value
+        for s in &ds.skills {
+            if ds.types[s].published {
+                levels.insert(*s, default_level);
             }
         }
         for (k, v) in &req.character.skills.levels {
@@ -278,7 +278,7 @@ impl<'a> Fit<'a> {
                 levels.insert(id, *v);
             }
         }
-        let mut lv: Vec<(u32, u8)> = levels.into_iter().filter(|(_, l)| *l > 0).collect();
+        let mut lv: Vec<(u32, u8)> = levels.into_iter().collect();
         lv.sort();
         for (s, l) in lv {
             if !ds.types.contains_key(&s) {

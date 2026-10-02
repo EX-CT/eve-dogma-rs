@@ -36,6 +36,13 @@ fn matches_pyfa_oracle() {
         let text = std::fs::read_to_string(f["eft"].as_str().unwrap()).unwrap();
         let mut req = eft::parse(&ds, &text).unwrap_or_else(|e| panic!("{name}: {e}"));
         req.character.skills.default_level = Some(5);
+        if let Some(patch) = f.get("request_patch").and_then(|p| p.as_object()) {
+            let mut v = serde_json::to_value(&req).unwrap();
+            for (k, x) in patch {
+                v[k] = x.clone();
+            }
+            req = serde_json::from_value(v).unwrap_or_else(|e| panic!("{name}: bad patch {e}"));
+        }
         let st = calc(&ds, &req);
         for (ptr, want) in f["values"].as_object().unwrap() {
             checked += 1;

@@ -80,10 +80,17 @@ def main(files):
     reqs = []
     for f in files:
         name = pathlib.Path(f).stem
-        p = subprocess.run([BIN, "eft", f, "--skills", "5"], capture_output=True, text=True)
-        if p.returncode: print(f"{name}: SKIP parse ({p.stderr.strip()})"); continue
-        req = json.loads(p.stdout)
-        if req.get("projected") or any((req.get("fleet") or {}).values()) :
+        if f.endswith(".json"):
+            # {"eft": "fits/x.eft", "patch": {...}}  -> EFT + extra request fields (projections, damage pattern...)
+            spec = json.loads(pathlib.Path(f).read_text())
+            p = subprocess.run([BIN, "eft", str(ROOT / "tests" / spec["eft"]), "--skills", "5"], capture_output=True, text=True)
+            if p.returncode: print(f"{name}: SKIP parse ({p.stderr.strip()})"); continue
+            req = json.loads(p.stdout); req.update(spec.get("patch", {}))
+        else:
+            p = subprocess.run([BIN, "eft", f, "--skills", "5"], capture_output=True, text=True)
+            if p.returncode: print(f"{name}: SKIP parse ({p.stderr.strip()})"); continue
+            req = json.loads(p.stdout)
+        if any((req.get("fleet") or {}).values()) or any(p.get("kind") not in ("module", "drone") for p in req.get("projected", [])):
             print(f"{name}: SKIP (oracle lacks projection/fleet)"); continue
         rp = TMP / f"{name}.json"; rp.write_text(json.dumps(req)); reqs.append((name, rp))
     env = dict(os.environ, PYTHONPATH=f"{REF}/stubs", ORACLE_REPEAT="3")
@@ -100,7 +107,8 @@ def main(files):
         if b["cap_stable"] and a["cap_stable"] and not close(a["cap_state"], b["cap_state"]): bad["cap_state"] = (a["cap_state"], b["cap_state"])
         for k in list(bad):
             if k in KNOWN.get(name, {}): bad.pop(k)
-        expected[name] = {"eft": f"tests/fits/{name}.eft",
+        expected[name] = {"eft": f"tests/fits/{name}.eft", **({"request_patch": json.loads(pathlib.Path(f).read_text()).get("patch", {}),
+                          "eft": "tests/" + json.loads(pathlib.Path(f).read_text())["eft"]} if str(f).endswith(".json") else {}),
                           "values": {PTR[k]: v for k, v in b.items() if k in PTR and k not in KNOWN.get(name, {})},
                           **({"cap_state_percent": b["cap_state"]} if b["cap_stable"] else {})}
         total += 1; ok += not bad

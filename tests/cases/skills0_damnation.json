@@ -1,0 +1,11 @@
+{
+ "eft": "fits/exct_damnation.eft",
+ "patch": {
+  "character": {
+   "skills": {
+    "default_level": 0,
+    "levels": {}
+   }
+  }
+ }
+}

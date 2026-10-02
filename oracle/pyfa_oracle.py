@@ -108,6 +108,23 @@ def build(req):
         fit.implants.append(Implant(item(i)))
     for b in req.get("boosters", []):
         fit.boosters.append(Booster(item(b["type_id"])))
+    for p in req.get("projected", []):
+        if p.get("kind") == "module":
+            for _ in range(p.get("amount", 1)):
+                pm = mutated(Module, p["module"])
+                if p["module"].get("charge_type_id"):
+                    pm.charge = item(p["module"]["charge_type_id"])
+                pm.state = FittingModuleState.ACTIVE if pm.isValidState(FittingModuleState.ACTIVE) else FittingModuleState.ONLINE
+                pm.projectionRange = p.get("distance_m")
+                fit.projectedModules.append(pm)
+        elif p.get("kind") == "drone":
+            pd = Drone(item(p["drone"]["type_id"]))
+            pd.amount = p["drone"].get("quantity", 1) * p.get("amount", 1)
+            pd.amountActive = pd.amount
+            pd.projectionRange = p.get("distance_m")
+            fit.projectedDrones.append(pd)
+        else:
+            raise KeyError("projected kind %s unsupported by oracle" % p.get("kind"))
     dp = req.get("damage_pattern") or {"em": 25, "thermal": 25, "kinetic": 25, "explosive": 25}
     fit.damagePattern = DamagePattern(dp["em"], dp["thermal"], dp["kinetic"], dp["explosive"])
     fit.factorReload = bool(req.get("options", {}).get("factor_reload", False))

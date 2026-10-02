@@ -1,0 +1,23 @@
+{
+ "eft": "fits/exct_rifter.eft",
+ "patch": {
+  "projected": [
+   {
+    "kind": "module",
+    "module": {
+     "type_id": 527
+    },
+    "amount": 2,
+    "distance_m": 5000
+   },
+   {
+    "kind": "module",
+    "module": {
+     "type_id": 12709
+    },
+    "amount": 1,
+    "distance_m": 20000
+   }
+  ]
+ }
+}

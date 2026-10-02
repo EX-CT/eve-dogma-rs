@@ -1,0 +1,11 @@
+{
+ "eft": "fits/exct_hel.eft",
+ "patch": {
+  "character": {
+   "skills": {
+    "default_level": 2,
+    "levels": {}
+   }
+  }
+ }
+}

@@ -1,0 +1,11 @@
+{
+ "eft": "fits/exct_vargur.eft",
+ "patch": {
+  "character": {
+   "skills": {
+    "default_level": 2,
+    "levels": {}
+   }
+  }
+ }
+}

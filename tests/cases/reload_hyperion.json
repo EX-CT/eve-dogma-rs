@@ -1,0 +1,9 @@
+{
+ "eft": "fits/exct_hyperion.eft",
+ "patch": {
+  "options": {
+   "factor_reload": true,
+   "validate": true
+  }
+ }
+}

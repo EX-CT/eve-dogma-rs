@@ -1,0 +1,15 @@
+{
+ "eft": "fits/exct_naga.eft",
+ "patch": {
+  "projected": [
+   {
+    "kind": "module",
+    "module": {
+     "type_id": 1969
+    },
+    "amount": 2,
+    "distance_m": 10000
+   }
+  ]
+ }
+}

@@ -1,0 +1,11 @@
+{
+ "eft": "fits/exct_apocalypse_navy.eft",
+ "patch": {
+  "character": {
+   "skills": {
+    "default_level": 0,
+    "levels": {}
+   }
+  }
+ }
+}

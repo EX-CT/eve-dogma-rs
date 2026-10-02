@@ -1,0 +1,11 @@
+{
+ "eft": "fits/exct_hyperion.eft",
+ "patch": {
+  "damage_pattern": {
+   "em": 10,
+   "thermal": 45,
+   "kinetic": 45,
+   "explosive": 0
+  }
+ }
+}

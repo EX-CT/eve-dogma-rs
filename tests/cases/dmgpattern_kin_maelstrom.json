@@ -1,0 +1,11 @@
+{
+ "eft": "fits/exct_maelstrom.eft",
+ "patch": {
+  "damage_pattern": {
+   "em": 0,
+   "thermal": 20,
+   "kinetic": 80,
+   "explosive": 0
+  }
+ }
+}

@@ -1,0 +1,11 @@
+{
+ "eft": "fits/exct_sabre.eft",
+ "patch": {
+  "character": {
+   "skills": {
+    "default_level": 4,
+    "levels": {}
+   }
+  }
+ }
+}

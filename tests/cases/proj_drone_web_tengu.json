@@ -1,0 +1,16 @@
+{
+ "eft": "fits/exct_tengu.eft",
+ "patch": {
+  "projected": [
+   {
+    "kind": "drone",
+    "drone": {
+     "type_id": 23536,
+     "quantity": 2
+    },
+    "amount": 1,
+    "distance_m": 1000
+   }
+  ]
+ }
+}
