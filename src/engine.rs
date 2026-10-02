@@ -68,14 +68,14 @@ pub struct AMod {
 #[derive(Debug)]
 pub struct Attr {
     pub base: f64,
-    pub mods: Vec<AMod>,
+    pub mods: smallvec::SmallVec<[AMod; 1]>,
     val: Cell<Option<f64>>,
     busy: Cell<bool>,
 }
 
 impl Attr {
     fn new(base: f64) -> Attr {
-        Attr { base, mods: Vec::new(), val: Cell::new(None), busy: Cell::new(false) }
+        Attr { base, mods: smallvec::SmallVec::new(), val: Cell::new(None), busy: Cell::new(false) }
     }
 }
 
