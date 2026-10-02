@@ -205,6 +205,8 @@ pub struct WellKnown {
     pub req_skill: Vec<(u32, u32)>,
     /// published skill type ids, ascending
     pub published_skills: Vec<u32>,
+    /// tactical destroyer modes (group 1306): (type id, lowercase name), ascending by id
+    pub mode_types: Vec<(u32, String)>,
 }
 
 // ---------- raw serde shapes ----------
@@ -520,6 +522,11 @@ impl Dataset {
                     let mut v: Vec<u32> = d.skills.iter().copied().filter(|s| d.types.get(s).map(|t| t.published).unwrap_or(false)).collect();
                     v.sort_unstable();
                     v.dedup();
+                    v
+                },
+                mode_types: {
+                    let mut v: Vec<(u32, String)> = d.types.iter().filter(|(_, t)| t.group == 1306).map(|(id, t)| (*id, t.name.to_lowercase())).collect();
+                    v.sort_unstable();
                     v
                 },
             };

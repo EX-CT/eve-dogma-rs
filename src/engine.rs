@@ -565,12 +565,8 @@ impl<'a> Fit<'a> {
         // Tactical destroyers must have a mode: default to the first (lowest type id) like Pyfa / the client.
         let mode_id = req.ship.mode_type_id.or_else(|| {
             let ship_name = ds.types.get(&req.ship.type_id)?.name.to_lowercase();
-            let m = ds
-                .types
-                .iter()
-                .filter(|(_, t)| t.group == 1306 && t.name.to_lowercase().starts_with(&ship_name))
-                .map(|(id, _)| *id)
-                .min()?;
+            // load-time list of mode types sorted by id: the first match is the lowest id
+            let m = ds.wk.mode_types.iter().find(|(_, n)| n.starts_with(&ship_name)).map(|(id, _)| *id)?;
             fit.warnings.push(format!("no tactical mode given; defaulted to type {m}"));
             Some(m)
         });
