@@ -21,10 +21,11 @@ Commands:
 
 Dataset: --dataset PATH, or $EVE_DOGMA_DATASET, or ./dataset.json.gz";
 
-fn load(path: Option<String>) -> Dataset {
+/// the dataset lives for the whole process: leaked so exit skips freeing ~10k types (~5% of a cold calc)
+fn load(path: Option<String>) -> &'static Dataset {
     let p = path.or_else(|| std::env::var("EVE_DOGMA_DATASET").ok()).unwrap_or_else(|| "dataset.json.gz".into());
     match Dataset::load_path(&p) {
-        Ok(d) => d,
+        Ok(d) => Box::leak(Box::new(d)),
         Err(e) => {
             eprintln!("error: {e}");
             std::process::exit(3)
@@ -63,7 +64,7 @@ fn search(ds: &Dataset, q: &str, limit: usize, kinds: Option<Vec<String>>) -> Va
     let ql = q.trim().to_lowercase();
     let rank = |id: &u32, t: &eve_dogma::data::TypeInfo| -> Option<u8> {
         let en = t.name.to_lowercase();
-        let zh = ds.names_zh.get(id).map(|z| z.to_lowercase());
+        let zh = ds.name_zh(*id).map(|z| z.to_lowercase());
         let zh = zh.as_deref().unwrap_or("");
         if en == ql || (!zh.is_empty() && zh == ql) {
             Some(0)
@@ -94,7 +95,7 @@ fn search(ds: &Dataset, q: &str, limit: usize, kinds: Option<Vec<String>>) -> Va
         hits.into_iter()
             .take(limit)
             .map(|(r, id, k, t)| {
-                json!({"type_id": id, "name": t.name, "name_zh": ds.names_zh.get(&id), "kind": k, "match": (["exact", "prefix", "substring"][r as usize]),
+                json!({"type_id": id, "name": t.name, "name_zh": ds.name_zh(id), "kind": k, "match": (["exact", "prefix", "substring"][r as usize]),
                        "group": ds.groups.get(&t.group).map(|g| g.name.clone()), "category_id": t.category,
                        "meta_level": t.meta_level, "slot": eve_dogma::engine::infer_slot(ds, t)})
             })
@@ -111,7 +112,7 @@ fn type_info(ds: &Dataset, key: &str) -> Value {
         .map(|(a, v)| (ds.attrs.get(a).map(|x| x.name.clone()).unwrap_or(a.to_string()), json!(v)))
         .collect();
     let effects: Vec<Value> = t.effects.iter().map(|(e, d)| json!({"id": e, "name": ds.effects.get(e).map(|x| x.name.clone()), "default": d})).collect();
-    json!({"type_id": t.id, "name": t.name, "name_zh": ds.names_zh.get(&t.id), "group": ds.groups.get(&t.group).map(|g| g.name.clone()), "group_id": t.group,
+    json!({"type_id": t.id, "name": t.name, "name_zh": ds.name_zh(t.id), "group": ds.groups.get(&t.group).map(|g| g.name.clone()), "group_id": t.group,
            "category_id": t.category, "published": t.published, "mass": t.mass, "volume": t.volume, "capacity": t.capacity,
            "slot": eve_dogma::engine::infer_slot(ds, t), "attributes": attrs, "effects": effects})
 }

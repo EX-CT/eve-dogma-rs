@@ -189,7 +189,11 @@ pub struct Dataset {
     pub effects: Dense<EffectInfo>,
     pub dbuffs: FxHashMap<u32, DbuffInfo>,
     pub mutaplasmids: FxHashMap<u32, MutaInfo>,
-    pub names_zh: FxHashMap<u32, String>,
+    /// Chinese type names as one "id\tname\n" blob sorted by id: one allocation to load from the binary cache
+    /// instead of ~10k; indexed on first use (only the search/type commands read it)
+    names_zh_raw: String,
+    #[serde(skip)]
+    names_zh_idx: std::sync::OnceLock<Vec<(u32, u32, u32)>>,
     attr_by_name: FxHashMap<String, u32>,
     effect_by_name: FxHashMap<String, u32>,
     /// lowercase name -> type id, built on first use (not stored in the binary cache: most calcs never need it).
@@ -499,11 +503,20 @@ impl Dataset {
         skills.sort();
         let dbuffs = raw.dbuffs.into_iter().map(|(k, v)| (k.parse().unwrap_or(0), v)).collect();
         let mutaplasmids = raw.mutaplasmids.into_iter().map(|(k, v)| (k.parse().unwrap_or(0), v)).collect();
-        let names_zh = raw
-            .names
-            .get("zh")
-            .map(|m| m.iter().map(|(k, v)| (k.parse().unwrap_or(0), v.clone())).collect())
-            .unwrap_or_default();
+        let names_zh_raw = {
+            let mut v: Vec<(u32, &String)> =
+                raw.names.get("zh").map(|m| m.iter().map(|(k, v)| (k.parse().unwrap_or(0), v)).collect()).unwrap_or_default();
+            v.sort_unstable_by_key(|x| x.0);
+            v.dedup_by_key(|x| x.0);
+            let mut s = String::new();
+            for (id, n) in v {
+                if n.contains(['\t', '\n']) {
+                    continue;
+                }
+                s.push_str(&format!("{id}\t{n}\n"));
+            }
+            s
+        };
         Ok(Dataset {
             build: raw.sde.build,
             release_date: raw.sde.release_date,
@@ -515,7 +528,8 @@ impl Dataset {
             effects,
             dbuffs,
             mutaplasmids,
-            names_zh,
+            names_zh_raw,
+            names_zh_idx: std::sync::OnceLock::new(),
             attr_by_name,
             effect_by_name,
             type_by_name: std::sync::OnceLock::new(),
@@ -553,6 +567,23 @@ impl Dataset {
     pub fn effect_id(&self, name: &str) -> u32 {
         *self.effect_by_name.get(name).unwrap_or(&0)
     }
+    /// Chinese name of a type, if the dataset has one
+    pub fn name_zh(&self, id: u32) -> Option<&str> {
+        let idx = self.names_zh_idx.get_or_init(|| {
+            let mut v = Vec::new();
+            let mut pos = 0usize;
+            for line in self.names_zh_raw.split_inclusive('\n') {
+                if let Some((k, n)) = line.trim_end_matches('\n').split_once('\t') {
+                    let start = pos + k.len() + 1;
+                    v.push((k.parse().unwrap_or(0), start as u32, (start + n.len()) as u32));
+                }
+                pos += line.len();
+            }
+            v
+        });
+        idx.binary_search_by_key(&id, |x| x.0).ok().map(|k| &self.names_zh_raw[idx[k].1 as usize..idx[k].2 as usize])
+    }
+
     pub fn type_by_name(&self, name: &str) -> Option<u32> {
         self.type_by_name
             .get_or_init(|| {
