@@ -1,13 +1,13 @@
 {
  "fits": {
   "dmgpattern_kin_maelstrom": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_maelstrom.eft",
    "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
+    "damage_pattern": {
+     "em": 0,
+     "explosive": 0,
+     "kinetic": 80,
+     "thermal": 20
     }
    },
    "values": {
@@ -61,13 +61,13 @@
    }
   },
   "dmgpattern_rah_hyperion": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_hyperion.eft",
    "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
+    "damage_pattern": {
+     "em": 10,
+     "explosive": 0,
+     "kinetic": 45,
+     "thermal": 45
     }
    },
    "values": {
@@ -121,15 +121,7 @@
    }
   },
   "esf_ancillary_repair": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_ancillary_repair.eft",
    "values": {
     "/capacitor/capacity": 1812.5,
     "/capacitor/recharge_time_s": 361.875,
@@ -181,15 +173,7 @@
    }
   },
   "esf_ancillary_repair_1": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_ancillary_repair_1.eft",
    "values": {
     "/capacitor/capacity": 1812.5,
     "/capacitor/recharge_time_s": 361.875,
@@ -242,15 +226,7 @@
   },
   "esf_ancillary_repair_2": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_ancillary_repair_2.eft",
    "values": {
     "/capacitor/capacity": 1562.5,
     "/capacitor/recharge_time_s": 333.75,
@@ -302,15 +278,7 @@
    }
   },
   "esf_ancillary_repair_3": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_ancillary_repair_3.eft",
    "values": {
     "/capacitor/capacity": 1562.5,
     "/capacitor/recharge_time_s": 333.75,
@@ -362,15 +330,7 @@
    }
   },
   "esf_ancillary_repair_4": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_ancillary_repair_4.eft",
    "values": {
     "/capacitor/capacity": 1812.5,
     "/capacitor/recharge_time_s": 361.875,
@@ -423,15 +383,7 @@
   },
   "esf_attribute_cap": {
    "cap_state_percent": 37.42063587122618,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_attribute_cap.eft",
    "values": {
     "/capacitor/capacity": 7750.0,
     "/capacitor/recharge_time_s": 825.0,
@@ -484,15 +436,7 @@
   },
   "esf_attribute_cap_1": {
    "cap_state_percent": 90.26707943831885,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_attribute_cap_1.eft",
    "values": {
     "/capacitor/capacity": 7750.0,
     "/capacitor/recharge_time_s": 825.0,
@@ -545,15 +489,7 @@
   },
   "esf_attribute_cap_2": {
    "cap_state_percent": 82.6705544687775,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_attribute_cap_2.eft",
    "values": {
     "/capacitor/capacity": 7750.0,
     "/capacitor/recharge_time_s": 825.0,
@@ -606,15 +542,7 @@
   },
   "esf_beacons": {
    "cap_state_percent": 2.914409861909105,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_beacons.eft",
    "values": {
     "/capacitor/capacity": 312.5,
     "/capacitor/recharge_time_s": 93.75,
@@ -667,15 +595,7 @@
   },
   "esf_beacons_1": {
    "cap_state_percent": 87.62325238567671,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_beacons_1.eft",
    "values": {
     "/capacitor/capacity": 1812.5,
     "/capacitor/recharge_time_s": 361.875,
@@ -727,15 +647,7 @@
    }
   },
   "esf_boosters": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_boosters.eft",
    "values": {
     "/capacitor/capacity": 312.5,
     "/capacitor/recharge_time_s": 93.75,
@@ -788,15 +700,7 @@
   },
   "esf_burst_projector": {
    "cap_state_percent": 69.61703010824866,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_burst_projector.eft",
    "values": {
     "/capacitor/capacity": 101250.0,
     "/capacitor/recharge_time_s": 3795.0,
@@ -849,15 +753,7 @@
   },
   "esf_burst_projector_1": {
    "cap_state_percent": 57.36389003016084,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_burst_projector_1.eft",
    "values": {
     "/capacitor/capacity": 101250.0,
     "/capacitor/recharge_time_s": 3795.0,
@@ -910,15 +806,7 @@
   },
   "esf_burst_projector_2": {
    "cap_state_percent": 69.61703010824866,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_burst_projector_2.eft",
    "values": {
     "/capacitor/capacity": 101250.0,
     "/capacitor/recharge_time_s": 3795.0,
@@ -971,15 +859,7 @@
   },
   "esf_burst_projector_3": {
    "cap_state_percent": 69.61703010824866,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_burst_projector_3.eft",
    "values": {
     "/capacitor/capacity": 101250.0,
     "/capacitor/recharge_time_s": 3795.0,
@@ -1031,15 +911,7 @@
    }
   },
   "esf_buzzard": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_buzzard.eft",
    "values": {
     "/capacitor/capacity": 205.078125,
     "/capacitor/recharge_time_s": 140.625,
@@ -1092,15 +964,7 @@
   },
   "esf_capacitor_booster": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_capacitor_booster.eft",
    "values": {
     "/capacitor/capacity": 1812.5,
     "/capacitor/recharge_time_s": 361.875,
@@ -1153,15 +1017,7 @@
   },
   "esf_capacitor_booster_1": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_capacitor_booster_1.eft",
    "values": {
     "/capacitor/capacity": 1812.5,
     "/capacitor/recharge_time_s": 361.875,
@@ -1213,15 +1069,7 @@
    }
   },
   "esf_capacitor_booster_2": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_capacitor_booster_2.eft",
    "values": {
     "/capacitor/capacity": 1450.0,
     "/capacitor/recharge_time_s": 361.875,
@@ -1274,15 +1122,7 @@
   },
   "esf_capacitor_booster_3": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_capacitor_booster_3.eft",
    "values": {
     "/capacitor/capacity": 1562.5,
     "/capacitor/recharge_time_s": 333.75,
@@ -1335,15 +1175,7 @@
   },
   "esf_capacitor_stable": {
    "cap_state_percent": 88.19900344424558,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_capacitor_stable.eft",
    "values": {
     "/capacitor/capacity": 7500.0,
     "/capacitor/recharge_time_s": 270.3360000000001,
@@ -1395,15 +1227,7 @@
    }
   },
   "esf_caracal": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_caracal.eft",
    "values": {
     "/capacitor/capacity": 3350.0,
     "/capacitor/recharge_time_s": 333.75,
@@ -1455,15 +1279,7 @@
    }
   },
   "esf_charged_repair": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_charged_repair.eft",
    "values": {
     "/capacitor/capacity": 1812.5,
     "/capacitor/recharge_time_s": 361.875,
@@ -1515,15 +1331,7 @@
    }
   },
   "esf_charged_repair_1": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_charged_repair_1.eft",
    "values": {
     "/capacitor/capacity": 1812.5,
     "/capacitor/recharge_time_s": 361.875,
@@ -1575,15 +1383,7 @@
    }
   },
   "esf_charged_repair_2": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_charged_repair_2.eft",
    "values": {
     "/capacitor/capacity": 1812.5,
     "/capacitor/recharge_time_s": 361.875,
@@ -1635,15 +1435,7 @@
    }
   },
   "esf_charged_repair_3": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_charged_repair_3.eft",
    "values": {
     "/capacitor/capacity": 1812.5,
     "/capacitor/recharge_time_s": 361.875,
@@ -1696,15 +1488,7 @@
   },
   "esf_charges": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_charges.eft",
    "values": {
     "/capacitor/capacity": 312.5,
     "/capacitor/recharge_time_s": 93.75,
@@ -1757,15 +1541,7 @@
   },
   "esf_charges_1": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_charges_1.eft",
    "values": {
     "/capacitor/capacity": 312.5,
     "/capacitor/recharge_time_s": 93.75,
@@ -1818,15 +1594,7 @@
   },
   "esf_charges_2": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_charges_2.eft",
    "values": {
     "/capacitor/capacity": 312.5,
     "/capacitor/recharge_time_s": 93.75,
@@ -1878,15 +1646,7 @@
    }
   },
   "esf_damage_profile": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_damage_profile.eft",
    "values": {
     "/capacitor/capacity": 312.5,
     "/capacitor/recharge_time_s": 93.75,
@@ -1938,15 +1698,7 @@
    }
   },
   "esf_dominix": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_dominix.eft",
    "values": {
     "/capacitor/capacity": 7500.0,
     "/capacitor/recharge_time_s": 701.25,
@@ -1999,15 +1751,7 @@
   },
   "esf_drone_stack_state": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_drone_stack_state.eft",
    "values": {
     "/capacitor/capacity": 1812.5,
     "/capacitor/recharge_time_s": 361.875,
@@ -2060,15 +1804,7 @@
   },
   "esf_fighters": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_fighters.eft",
    "values": {
     "/capacitor/capacity": 68750.0,
     "/capacitor/recharge_time_s": 3150.0,
@@ -2120,15 +1856,7 @@
    }
   },
   "esf_gila": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_gila.eft",
    "values": {
     "/capacitor/capacity": 4025.0,
     "/capacitor/recharge_time_s": 367.5,
@@ -2181,15 +1909,7 @@
   },
   "esf_implants": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_implants.eft",
    "values": {
     "/capacitor/capacity": 500.0,
     "/capacitor/recharge_time_s": 120.0,
@@ -2242,15 +1962,7 @@
   },
   "esf_implants_1": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_implants_1.eft",
    "values": {
     "/capacitor/capacity": 200000.0,
     "/capacitor/recharge_time_s": 3600.0,
@@ -2303,15 +2015,7 @@
   },
   "esf_items": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_items.eft",
    "values": {
     "/capacitor/capacity": 312.5,
     "/capacitor/recharge_time_s": 93.75,
@@ -2363,15 +2067,7 @@
    }
   },
   "esf_items_1": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_items_1.eft",
    "values": {
     "/capacitor/capacity": 312.5,
     "/capacitor/recharge_time_s": 93.75,
@@ -2424,15 +2120,7 @@
   },
   "esf_items_2": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_items_2.eft",
    "values": {
     "/capacitor/capacity": 312.5,
     "/capacitor/recharge_time_s": 93.75,
@@ -2485,15 +2173,7 @@
   },
   "esf_items_3": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_items_3.eft",
    "values": {
     "/capacitor/capacity": 312.5,
     "/capacitor/recharge_time_s": 93.75,
@@ -2546,15 +2226,7 @@
   },
   "esf_items_4": {
    "cap_state_percent": 64.36097444511803,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_items_4.eft",
    "values": {
     "/capacitor/capacity": 250.0,
     "/capacitor/recharge_time_s": 93.75,
@@ -2606,15 +2278,7 @@
   },
   "esf_items_5": {
    "cap_state_percent": 81.80780851937814,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_items_5.eft",
    "values": {
     "/capacitor/capacity": 250000.0,
     "/capacitor/recharge_time_s": 3600.0,
@@ -2667,15 +2331,7 @@
   },
   "esf_items_6": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_items_6.eft",
    "values": {
     "/capacitor/capacity": 200000.0,
     "/capacitor/recharge_time_s": 3600.0,
@@ -2728,15 +2384,7 @@
   },
   "esf_items_7": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_items_7.eft",
    "values": {
     "/capacitor/recharge_time_s": 93.75,
     "/capacitor/stable": true,
@@ -2788,15 +2436,7 @@
   },
   "esf_location_bonus_not_on_drones": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_location_bonus_not_on_drones.eft",
    "values": {
     "/capacitor/capacity": 6875.0,
     "/capacitor/recharge_time_s": 825.0,
@@ -2848,15 +2488,7 @@
    }
   },
   "esf_machariel": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_machariel.eft",
    "values": {
     "/capacitor/capacity": 7250.0,
     "/capacitor/recharge_time_s": 865.5,
@@ -2909,15 +2541,7 @@
   },
   "esf_mutations": {
    "cap_state_percent": 93.14723101631544,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_mutations.eft",
    "values": {
     "/capacitor/capacity": 437.5,
     "/capacitor/recharge_time_s": 131.25,
@@ -2970,15 +2594,7 @@
   },
   "esf_no_charge": {
    "cap_state_percent": 66.70611385265566,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_no_charge.eft",
    "values": {
     "/capacitor/capacity": 437.5,
     "/capacitor/recharge_time_s": 131.25,
@@ -3031,15 +2647,7 @@
   },
   "esf_nosferatu_income": {
    "cap_state_percent": 65.97656786814653,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_nosferatu_income.eft",
    "values": {
     "/capacitor/capacity": 400.0,
     "/capacitor/recharge_time_s": 120.0,
@@ -3092,15 +2700,7 @@
   },
   "esf_nosferatu_income_1": {
    "cap_state_percent": 61.69806416191849,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_nosferatu_income_1.eft",
    "values": {
     "/capacitor/capacity": 500.0,
     "/capacitor/recharge_time_s": 120.0,
@@ -3152,15 +2752,7 @@
    }
   },
   "esf_omen_meta": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_omen_meta.eft",
    "values": {
     "/capacitor/capacity": 3787.5,
     "/capacitor/recharge_time_s": 423.75,
@@ -3212,15 +2804,7 @@
    }
   },
   "esf_omen_t2": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_omen_t2.eft",
    "values": {
     "/capacitor/capacity": 1600.0,
     "/capacitor/recharge_time_s": 423.75,
@@ -3273,15 +2857,7 @@
   },
   "esf_orca": {
    "cap_state_percent": 75.49279081537051,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_orca.eft",
    "values": {
     "/capacitor/capacity": 10000.0,
     "/capacitor/recharge_time_s": 900.0,
@@ -3334,15 +2910,7 @@
   },
   "esf_projection": {
    "cap_state_percent": 87.59049503440107,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_projection.eft",
    "values": {
     "/capacitor/capacity": 1593.75,
     "/capacitor/recharge_time_s": 318.75,
@@ -3395,15 +2963,7 @@
   },
   "esf_projection_1": {
    "cap_state_percent": 96.134190065839,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_projection_1.eft",
    "values": {
     "/capacitor/capacity": 1625.0,
     "/capacitor/recharge_time_s": 347.25,
@@ -3456,15 +3016,7 @@
   },
   "esf_projection_10": {
    "cap_state_percent": 97.74712210905001,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_projection_10.eft",
    "values": {
     "/capacitor/capacity": 3281.25,
     "/capacitor/recharge_time_s": 437.5003125,
@@ -3517,15 +3069,7 @@
   },
   "esf_projection_11": {
    "cap_state_percent": 65.87056858128267,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_projection_11.eft",
    "values": {
     "/capacitor/capacity": 2406.25,
     "/capacitor/recharge_time_s": 322.5,
@@ -3578,15 +3122,7 @@
   },
   "esf_projection_12": {
    "cap_state_percent": 61.314722669679064,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_projection_12.eft",
    "values": {
     "/capacitor/capacity": 2625.0,
     "/capacitor/recharge_time_s": 350.25,
@@ -3638,15 +3174,7 @@
    }
   },
   "esf_projection_13": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_projection_13.eft",
    "values": {
     "/capacitor/capacity": 2625.0,
     "/capacitor/recharge_time_s": 315.0,
@@ -3699,15 +3227,7 @@
   },
   "esf_projection_14": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_projection_14.eft",
    "values": {
     "/capacitor/capacity": 1812.5,
     "/capacitor/recharge_time_s": 361.875,
@@ -3760,15 +3280,7 @@
   },
   "esf_projection_15": {
    "cap_state_percent": 57.55863673295426,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_projection_15.eft",
    "values": {
     "/capacitor/capacity": 2625.0,
     "/capacitor/recharge_time_s": 350.25,
@@ -3821,15 +3333,7 @@
   },
   "esf_projection_16": {
    "cap_state_percent": 72.52712527790494,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_projection_16.eft",
    "values": {
     "/capacitor/capacity": 1837.5,
     "/capacitor/recharge_time_s": 246.75,
@@ -3882,15 +3386,7 @@
   },
   "esf_projection_17": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_projection_17.eft",
    "values": {
     "/capacitor/capacity": 1837.5,
     "/capacitor/recharge_time_s": 246.75,
@@ -3943,15 +3439,7 @@
   },
   "esf_projection_18": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_projection_18.eft",
    "values": {
     "/capacitor/capacity": 9375.0,
     "/capacitor/recharge_time_s": 750.0,
@@ -4003,15 +3491,7 @@
   },
   "esf_projection_19": {
    "cap_state_percent": 84.03203693144603,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_projection_19.eft",
    "values": {
     "/capacitor/capacity": 75000.0,
     "/capacitor/recharge_time_s": 3300.0,
@@ -4064,15 +3544,7 @@
   },
   "esf_projection_2": {
    "cap_state_percent": 92.21378946799487,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_projection_2.eft",
    "values": {
     "/capacitor/capacity": 1625.0,
     "/capacitor/recharge_time_s": 347.25,
@@ -4125,15 +3597,7 @@
   },
   "esf_projection_3": {
    "cap_state_percent": 92.17405899832349,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_projection_3.eft",
    "values": {
     "/capacitor/capacity": 1625.0,
     "/capacitor/recharge_time_s": 347.25,
@@ -4186,15 +3650,7 @@
   },
   "esf_projection_4": {
    "cap_state_percent": 88.08134124948992,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_projection_4.eft",
    "values": {
     "/capacitor/capacity": 1625.0,
     "/capacitor/recharge_time_s": 347.25,
@@ -4247,15 +3703,7 @@
   },
   "esf_projection_5": {
    "cap_state_percent": 94.14636952689631,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_projection_5.eft",
    "values": {
     "/capacitor/capacity": 1625.0,
     "/capacitor/recharge_time_s": 347.25,
@@ -4308,15 +3756,7 @@
   },
   "esf_projection_6": {
    "cap_state_percent": 94.14636952689631,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_projection_6.eft",
    "values": {
     "/capacitor/capacity": 1625.0,
     "/capacitor/recharge_time_s": 347.25,
@@ -4369,15 +3809,7 @@
   },
   "esf_projection_7": {
    "cap_state_percent": 95.62772445417029,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_projection_7.eft",
    "values": {
     "/capacitor/capacity": 2625.0,
     "/capacitor/recharge_time_s": 315.0,
@@ -4430,15 +3862,7 @@
   },
   "esf_projection_8": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_projection_8.eft",
    "values": {
     "/capacitor/capacity": 1812.5,
     "/capacitor/recharge_time_s": 361.875,
@@ -4491,15 +3915,7 @@
   },
   "esf_projection_9": {
    "cap_state_percent": 97.74712210905001,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_projection_9.eft",
    "values": {
     "/capacitor/capacity": 3281.25,
     "/capacitor/recharge_time_s": 437.5003125,
@@ -4552,15 +3968,7 @@
   },
   "esf_quantity_with_x_in_name": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_quantity_with_x_in_name.eft",
    "values": {
     "/capacitor/capacity": 84375.0,
     "/capacitor/recharge_time_s": 3375.0,
@@ -4613,15 +4021,7 @@
   },
   "esf_reactive_armor_hardener": {
    "cap_state_percent": 86.90447328921877,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_reactive_armor_hardener.eft",
    "values": {
     "/capacitor/capacity": 312.5,
     "/capacitor/recharge_time_s": 93.75,
@@ -4673,15 +4073,7 @@
    }
   },
   "esf_resources": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_resources.eft",
    "values": {
     "/capacitor/capacity": 312.5,
     "/capacitor/recharge_time_s": 93.75,
@@ -4734,15 +4126,7 @@
   },
   "esf_resources_1": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_resources_1.eft",
    "values": {
     "/capacitor/capacity": 312.5,
     "/capacitor/recharge_time_s": 93.75,
@@ -4795,15 +4179,7 @@
   },
   "esf_resources_2": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_resources_2.eft",
    "values": {
     "/capacitor/capacity": 1812.5,
     "/capacitor/recharge_time_s": 361.875,
@@ -4856,15 +4232,7 @@
   },
   "esf_resources_3": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_resources_3.eft",
    "values": {
     "/capacitor/capacity": 1812.5,
     "/capacitor/recharge_time_s": 361.875,
@@ -4917,15 +4285,7 @@
   },
   "esf_resources_4": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_resources_4.eft",
    "values": {
     "/capacitor/capacity": 312.5,
     "/capacitor/recharge_time_s": 93.75,
@@ -4977,15 +4337,7 @@
    }
   },
   "esf_rupture": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_rupture.eft",
    "values": {
     "/capacitor/capacity": 3381.25,
     "/capacitor/recharge_time_s": 318.75,
@@ -5037,15 +4389,7 @@
    }
   },
   "esf_security_status": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_security_status.eft",
    "values": {
     "/capacitor/capacity": 1625.0,
     "/capacitor/recharge_time_s": 315.0,
@@ -5098,15 +4442,7 @@
   },
   "esf_security_status_1": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_security_status_1.eft",
    "values": {
     "/capacitor/capacity": 500.0,
     "/capacitor/recharge_time_s": 150.0,
@@ -5159,15 +4495,7 @@
   },
   "esf_skills": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_skills.eft",
    "values": {
     "/capacitor/capacity": 312.5,
     "/capacitor/recharge_time_s": 93.75,
@@ -5220,15 +4548,7 @@
   },
   "esf_skills_1": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_skills_1.eft",
    "values": {
     "/capacitor/capacity": 312.5,
     "/capacitor/recharge_time_s": 93.75,
@@ -5281,15 +4601,7 @@
   },
   "esf_slots": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_slots.eft",
    "values": {
     "/capacitor/capacity": 312.5,
     "/capacitor/recharge_time_s": 93.75,
@@ -5342,15 +4654,7 @@
   },
   "esf_slots_1": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_slots_1.eft",
    "values": {
     "/capacitor/capacity": 312.5,
     "/capacitor/recharge_time_s": 93.75,
@@ -5403,15 +4707,7 @@
   },
   "esf_slots_2": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_slots_2.eft",
    "values": {
     "/capacitor/capacity": 312.5,
     "/capacitor/recharge_time_s": 93.75,
@@ -5464,15 +4760,7 @@
   },
   "esf_spool": {
    "cap_state_percent": 93.4450600346921,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_spool.eft",
    "values": {
     "/capacitor/capacity": 656.25,
     "/capacitor/recharge_time_s": 159.375,
@@ -5525,15 +4813,7 @@
   },
   "esf_spool_1": {
    "cap_state_percent": 80.81359041962648,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_spool_1.eft",
    "values": {
     "/capacitor/capacity": 8250.0,
     "/capacitor/recharge_time_s": 750.0,
@@ -5586,15 +4866,7 @@
   },
   "esf_spool_2": {
    "cap_state_percent": 57.832363585558845,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_spool_2.eft",
    "values": {
     "/capacitor/capacity": 2937.5,
     "/capacitor/recharge_time_s": 333.75,
@@ -5646,15 +4918,7 @@
    }
   },
   "esf_stabber": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_stabber.eft",
    "values": {
     "/capacitor/capacity": 1125.0,
     "/capacitor/recharge_time_s": 320.625,
@@ -5707,15 +4971,7 @@
   },
   "esf_stacking_per_operator": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_stacking_per_operator.eft",
    "values": {
     "/capacitor/capacity": 312.5,
     "/capacitor/recharge_time_s": 93.75,
@@ -5768,15 +5024,7 @@
   },
   "esf_structure_bonus": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_structure_bonus.eft",
    "values": {
     "/capacitor/capacity": 250000.0,
     "/capacitor/recharge_time_s": 3600.0,
@@ -5829,15 +5077,7 @@
   },
   "esf_structure_bonus_1": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_structure_bonus_1.eft",
    "values": {
     "/capacitor/capacity": 250000.0,
     "/capacitor/recharge_time_s": 3600.0,
@@ -5888,15 +5128,7 @@
   },
   "esf_structure_bonus_2": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_structure_bonus_2.eft",
    "values": {
     "/capacitor/capacity": 200000.0,
     "/capacitor/recharge_time_s": 3600.0,
@@ -5948,15 +5180,7 @@
    }
   },
   "esf_structure_stats": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_structure_stats.eft",
    "values": {
     "/capacitor/capacity": 250000.0,
     "/capacitor/recharge_time_s": 3600.0,
@@ -6009,15 +5233,7 @@
   },
   "esf_structure_stats_1": {
    "cap_state_percent": 81.80813048539335,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_structure_stats_1.eft",
    "values": {
     "/capacitor/capacity": 400000.0,
     "/capacitor/recharge_time_s": 5760.0,
@@ -6070,15 +5286,7 @@
   },
   "esf_tactical_modes": {
    "cap_state_percent": 90.95373655260038,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_tactical_modes.eft",
    "values": {
     "/capacitor/capacity": 1000.0,
     "/capacitor/recharge_time_s": 240.0,
@@ -6131,15 +5339,7 @@
   },
   "esf_tactical_modes_1": {
    "cap_state_percent": 100,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_tactical_modes_1.eft",
    "values": {
     "/capacitor/capacity": 875.0,
     "/capacitor/recharge_time_s": 225.0,
@@ -6191,15 +5391,7 @@
    }
   },
   "esf_typhoon_fleet_issue": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_typhoon_fleet_issue.eft",
    "values": {
     "/capacitor/capacity": 5800.0,
     "/capacitor/recharge_time_s": 491.7515624999999,
@@ -6252,15 +5444,7 @@
   },
   "esf_vexor": {
    "cap_state_percent": 31.310303425544856,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_vexor.eft",
    "values": {
     "/capacitor/capacity": 3600.0,
     "/capacitor/recharge_time_s": 361.875,
@@ -6313,15 +5497,7 @@
   },
   "esf_wreathe": {
    "cap_state_percent": 68.37215554221828,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/esf_wreathe.eft",
    "values": {
     "/capacitor/capacity": 437.5,
     "/capacitor/recharge_time_s": 155.625,
@@ -6373,15 +5549,7 @@
    }
   },
   "exct_apocalypse_navy": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/exct_apocalypse_navy.eft",
    "values": {
     "/capacitor/capacity": 10781.25,
     "/capacitor/recharge_time_s": 600.0000000000001,
@@ -6434,15 +5602,7 @@
   },
   "exct_cerberus": {
    "cap_state_percent": 39.00278821054356,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/exct_cerberus.eft",
    "values": {
     "/capacitor/capacity": 1200.0,
     "/capacitor/recharge_time_s": 176.25,
@@ -6495,15 +5655,7 @@
   },
   "exct_damnation": {
    "cap_state_percent": 44.783137285363864,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/exct_damnation.eft",
    "values": {
     "/capacitor/capacity": 3375.0,
     "/capacitor/recharge_time_s": 562.5,
@@ -6555,15 +5707,7 @@
    }
   },
   "exct_dominix": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/exct_dominix.eft",
    "values": {
     "/capacitor/capacity": 9531.25,
     "/capacitor/recharge_time_s": 660.0000000000001,
@@ -6615,15 +5759,7 @@
    }
   },
   "exct_gnosis": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/exct_gnosis.eft",
    "values": {
     "/capacitor/capacity": 3625.0,
     "/capacitor/recharge_time_s": 348.00000000000006,
@@ -6675,15 +5811,7 @@
    }
   },
   "exct_guardian": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/exct_guardian.eft",
    "values": {
     "/capacitor/capacity": 6875.0,
     "/capacitor/recharge_time_s": 375.0,
@@ -6735,15 +5863,7 @@
    }
   },
   "exct_harbinger": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/exct_harbinger.eft",
    "values": {
     "/capacitor/capacity": 4375.0,
     "/capacitor/recharge_time_s": 525.0000000000001,
@@ -6795,15 +5915,7 @@
    }
   },
   "exct_hel": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/exct_hel.eft",
    "values": {
     "/capacitor/capacity": 97500.0,
     "/capacitor/recharge_time_s": 3660.0,
@@ -6855,15 +5967,7 @@
    }
   },
   "exct_hyperion": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/exct_hyperion.eft",
    "values": {
     "/capacitor/capacity": 7200.0,
     "/capacitor/recharge_time_s": 1125.0,
@@ -6916,15 +6020,7 @@
   },
   "exct_ishtar": {
    "cap_state_percent": 45.84240630167086,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/exct_ishtar.eft",
    "values": {
     "/capacitor/capacity": 1400.0,
     "/capacitor/recharge_time_s": 198.75,
@@ -6976,15 +6072,7 @@
    }
   },
   "exct_kronos": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/exct_kronos.eft",
    "values": {
     "/capacitor/capacity": 10000.0,
     "/capacitor/recharge_time_s": 787.5,
@@ -7036,15 +6124,7 @@
    }
   },
   "exct_maelstrom": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/exct_maelstrom.eft",
    "values": {
     "/capacitor/capacity": 7625.0,
     "/capacitor/recharge_time_s": 600.0000000000001,
@@ -7096,15 +6176,7 @@
    }
   },
   "exct_naga": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/exct_naga.eft",
    "values": {
     "/capacitor/capacity": 2900.0,
     "/capacitor/recharge_time_s": 543.75,
@@ -7157,15 +6229,7 @@
   },
   "exct_nidhoggur": {
    "cap_state_percent": 90.71961347177056,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/exct_nidhoggur.eft",
    "values": {
     "/capacitor/capacity": 60000.0,
     "/capacitor/recharge_time_s": 2767.5,
@@ -7217,15 +6281,7 @@
    }
   },
   "exct_nightmare": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/exct_nightmare.eft",
    "values": {
     "/capacitor/capacity": 6950.0,
     "/capacitor/recharge_time_s": 865.5,
@@ -7278,15 +6334,7 @@
   },
   "exct_rattlesnake": {
    "cap_state_percent": 50.3028976461683,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/exct_rattlesnake.eft",
    "values": {
     "/capacitor/capacity": 6687.5,
     "/capacitor/recharge_time_s": 553.9200000000001,
@@ -7338,15 +6386,7 @@
    }
   },
   "exct_raven": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/exct_raven.eft",
    "values": {
     "/capacitor/capacity": 5500.0,
     "/capacitor/recharge_time_s": 862.5,
@@ -7399,15 +6439,7 @@
   },
   "exct_rifter": {
    "cap_state_percent": 83.49598710843377,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/exct_rifter.eft",
    "values": {
     "/capacitor/capacity": 312.5,
     "/capacitor/recharge_time_s": 93.75,
@@ -7459,15 +6491,7 @@
    }
   },
   "exct_sabre": {
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/exct_sabre.eft",
    "values": {
     "/capacitor/capacity": 600.0,
     "/capacitor/recharge_time_s": 225.0,
@@ -7520,15 +6544,7 @@
   },
   "exct_stiletto": {
    "cap_state_percent": 38.05284911927822,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/exct_stiletto.eft",
    "values": {
     "/capacitor/capacity": 250.0,
     "/capacitor/recharge_time_s": 140.625,
@@ -7581,15 +6597,7 @@
   },
   "exct_svipul": {
    "cap_state_percent": 63.09922845811009,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/exct_svipul.eft",
    "values": {
     "/capacitor/capacity": 600.0,
     "/capacitor/recharge_time_s": 180.0,
@@ -7642,15 +6650,7 @@
   },
   "exct_tengu": {
    "cap_state_percent": 63.461778721636634,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/exct_tengu.eft",
    "values": {
     "/capacitor/capacity": 2265.625,
     "/capacitor/recharge_time_s": 262.5,
@@ -7703,15 +6703,7 @@
   },
   "exct_vargur": {
    "cap_state_percent": 34.79885965975106,
-   "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
+   "eft": "tests/fits/exct_vargur.eft",
    "values": {
     "/capacitor/capacity": 7750.0,
     "/capacitor/recharge_time_s": 825.0,
@@ -7765,14 +6757,6 @@
   "exct_venture": {
    "cap_state_percent": 76.94789178810753,
    "eft": "tests/fits/exct_venture.eft",
-   "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
-    }
-   },
    "values": {
     "/capacitor/capacity": 312.5,
     "/capacitor/recharge_time_s": 93.75,
@@ -7824,14 +6808,18 @@
    }
   },
   "proj_damp_naga": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_naga.eft",
    "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
+    "projected": [
+     {
+      "amount": 2,
+      "distance_m": 10000,
+      "kind": "module",
+      "module": {
+       "type_id": 1969
+      }
      }
-    }
+    ]
    },
    "values": {
     "/capacitor/capacity": 2900.0,
@@ -7885,14 +6873,19 @@
   },
   "proj_drone_web_tengu": {
    "cap_state_percent": 63.461778721636634,
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_tengu.eft",
    "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
+    "projected": [
+     {
+      "amount": 1,
+      "distance_m": 1000,
+      "drone": {
+       "quantity": 2,
+       "type_id": 23536
+      },
+      "kind": "drone"
      }
-    }
+    ]
    },
    "values": {
     "/capacitor/capacity": 2265.625,
@@ -7946,14 +6939,18 @@
   },
   "proj_web_falloff_vexor": {
    "cap_state_percent": 31.310303425544856,
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/esf_vexor.eft",
    "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
+    "projected": [
+     {
+      "amount": 1,
+      "distance_m": 14000,
+      "kind": "module",
+      "module": {
+       "type_id": 527
+      }
      }
-    }
+    ]
    },
    "values": {
     "/capacitor/capacity": 3600.0,
@@ -8007,14 +7004,26 @@
   },
   "proj_web_tp_rifter": {
    "cap_state_percent": 83.49598710843377,
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_rifter.eft",
    "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
+    "projected": [
+     {
+      "amount": 2,
+      "distance_m": 5000,
+      "kind": "module",
+      "module": {
+       "type_id": 527
+      }
+     },
+     {
+      "amount": 1,
+      "distance_m": 20000,
+      "kind": "module",
+      "module": {
+       "type_id": 12709
+      }
      }
-    }
+    ]
    },
    "values": {
     "/capacitor/capacity": 312.5,
@@ -8067,13 +7076,11 @@
    }
   },
   "reload_hyperion": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_hyperion.eft",
    "request_patch": {
-    "character": {
-     "skills": {
-      "default_level": 4,
-      "levels": {}
-     }
+    "options": {
+     "factor_reload": true,
+     "validate": true
     }
    },
    "values": {
@@ -8127,11 +7134,11 @@
    }
   },
   "skills0_apocalypse_navy": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_apocalypse_navy.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -8187,11 +7194,11 @@
    }
   },
   "skills0_cerberus": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_cerberus.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -8247,11 +7254,11 @@
    }
   },
   "skills0_damnation": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_damnation.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -8307,11 +7314,11 @@
    }
   },
   "skills0_dominix": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_dominix.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -8367,11 +7374,11 @@
    }
   },
   "skills0_gnosis": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_gnosis.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -8427,11 +7434,11 @@
    }
   },
   "skills0_guardian": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_guardian.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -8487,11 +7494,11 @@
    }
   },
   "skills0_harbinger": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_harbinger.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -8547,11 +7554,11 @@
    }
   },
   "skills0_hel": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_hel.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -8607,11 +7614,11 @@
    }
   },
   "skills0_hyperion": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_hyperion.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -8667,11 +7674,11 @@
    }
   },
   "skills0_ishtar": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_ishtar.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -8727,11 +7734,11 @@
    }
   },
   "skills0_kronos": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_kronos.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -8787,11 +7794,11 @@
    }
   },
   "skills0_maelstrom": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_maelstrom.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -8847,11 +7854,11 @@
    }
   },
   "skills0_naga": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_naga.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -8908,11 +7915,11 @@
   },
   "skills0_nidhoggur": {
    "cap_state_percent": 87.52395907508227,
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_nidhoggur.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -8968,11 +7975,11 @@
    }
   },
   "skills0_nightmare": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_nightmare.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -9028,11 +8035,11 @@
    }
   },
   "skills0_rattlesnake": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_rattlesnake.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -9088,11 +8095,11 @@
    }
   },
   "skills0_raven": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_raven.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -9149,11 +8156,11 @@
   },
   "skills0_rifter": {
    "cap_state_percent": 37.70737992717208,
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_rifter.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -9209,11 +8216,11 @@
    }
   },
   "skills0_sabre": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_sabre.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -9269,11 +8276,11 @@
    }
   },
   "skills0_stiletto": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_stiletto.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -9329,11 +8336,11 @@
    }
   },
   "skills0_svipul": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_svipul.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -9389,11 +8396,11 @@
    }
   },
   "skills0_tengu": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_tengu.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -9449,11 +8456,11 @@
    }
   },
   "skills0_vargur": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_vargur.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -9514,7 +8521,7 @@
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 0,
       "levels": {}
      }
     }
@@ -9570,11 +8577,11 @@
    }
   },
   "skills2_apocalypse_navy": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_apocalypse_navy.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -9630,11 +8637,11 @@
    }
   },
   "skills2_cerberus": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_cerberus.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -9690,11 +8697,11 @@
    }
   },
   "skills2_damnation": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_damnation.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -9750,11 +8757,11 @@
    }
   },
   "skills2_dominix": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_dominix.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -9810,11 +8817,11 @@
    }
   },
   "skills2_gnosis": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_gnosis.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -9870,11 +8877,11 @@
    }
   },
   "skills2_guardian": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_guardian.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -9930,11 +8937,11 @@
    }
   },
   "skills2_harbinger": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_harbinger.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -9990,11 +8997,11 @@
    }
   },
   "skills2_hel": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_hel.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -10050,11 +9057,11 @@
    }
   },
   "skills2_hyperion": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_hyperion.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -10110,11 +9117,11 @@
    }
   },
   "skills2_ishtar": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_ishtar.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -10170,11 +9177,11 @@
    }
   },
   "skills2_kronos": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_kronos.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -10230,11 +9237,11 @@
    }
   },
   "skills2_maelstrom": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_maelstrom.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -10290,11 +9297,11 @@
    }
   },
   "skills2_naga": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_naga.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -10351,11 +9358,11 @@
   },
   "skills2_nidhoggur": {
    "cap_state_percent": 88.62316901884624,
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_nidhoggur.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -10411,11 +9418,11 @@
    }
   },
   "skills2_nightmare": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_nightmare.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -10471,11 +9478,11 @@
    }
   },
   "skills2_rattlesnake": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_rattlesnake.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -10531,11 +9538,11 @@
    }
   },
   "skills2_raven": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_raven.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -10592,11 +9599,11 @@
   },
   "skills2_rifter": {
    "cap_state_percent": 63.45574383925846,
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_rifter.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -10652,11 +9659,11 @@
    }
   },
   "skills2_sabre": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_sabre.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -10712,11 +9719,11 @@
    }
   },
   "skills2_stiletto": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_stiletto.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -10772,11 +9779,11 @@
    }
   },
   "skills2_svipul": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_svipul.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -10832,11 +9839,11 @@
    }
   },
   "skills2_tengu": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_tengu.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -10892,11 +9899,11 @@
    }
   },
   "skills2_vargur": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_vargur.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -10957,7 +9964,7 @@
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 2,
       "levels": {}
      }
     }
@@ -11013,11 +10020,11 @@
    }
   },
   "skills3_raven": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_raven.eft",
    "request_patch": {
     "character": {
      "skills": {
-      "default_level": 4,
+      "default_level": 3,
       "levels": {}
      }
     }
@@ -11073,7 +10080,7 @@
    }
   },
   "skills4_apocalypse_navy": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_apocalypse_navy.eft",
    "request_patch": {
     "character": {
      "skills": {
@@ -11133,7 +10140,7 @@
    }
   },
   "skills4_cerberus": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_cerberus.eft",
    "request_patch": {
     "character": {
      "skills": {
@@ -11193,7 +10200,7 @@
    }
   },
   "skills4_damnation": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_damnation.eft",
    "request_patch": {
     "character": {
      "skills": {
@@ -11253,7 +10260,7 @@
    }
   },
   "skills4_dominix": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_dominix.eft",
    "request_patch": {
     "character": {
      "skills": {
@@ -11313,7 +10320,7 @@
    }
   },
   "skills4_gnosis": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_gnosis.eft",
    "request_patch": {
     "character": {
      "skills": {
@@ -11373,7 +10380,7 @@
    }
   },
   "skills4_guardian": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_guardian.eft",
    "request_patch": {
     "character": {
      "skills": {
@@ -11433,7 +10440,7 @@
    }
   },
   "skills4_harbinger": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_harbinger.eft",
    "request_patch": {
     "character": {
      "skills": {
@@ -11493,7 +10500,7 @@
    }
   },
   "skills4_hel": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_hel.eft",
    "request_patch": {
     "character": {
      "skills": {
@@ -11553,7 +10560,7 @@
    }
   },
   "skills4_hyperion": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_hyperion.eft",
    "request_patch": {
     "character": {
      "skills": {
@@ -11613,7 +10620,7 @@
    }
   },
   "skills4_ishtar": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_ishtar.eft",
    "request_patch": {
     "character": {
      "skills": {
@@ -11673,7 +10680,7 @@
    }
   },
   "skills4_kronos": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_kronos.eft",
    "request_patch": {
     "character": {
      "skills": {
@@ -11733,7 +10740,7 @@
    }
   },
   "skills4_maelstrom": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_maelstrom.eft",
    "request_patch": {
     "character": {
      "skills": {
@@ -11793,7 +10800,7 @@
    }
   },
   "skills4_naga": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_naga.eft",
    "request_patch": {
     "character": {
      "skills": {
@@ -11854,7 +10861,7 @@
   },
   "skills4_nidhoggur": {
    "cap_state_percent": 89.64900670250346,
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_nidhoggur.eft",
    "request_patch": {
     "character": {
      "skills": {
@@ -11914,7 +10921,7 @@
    }
   },
   "skills4_nightmare": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_nightmare.eft",
    "request_patch": {
     "character": {
      "skills": {
@@ -11975,7 +10982,7 @@
   },
   "skills4_rattlesnake": {
    "cap_state_percent": 39.934941188138644,
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_rattlesnake.eft",
    "request_patch": {
     "character": {
      "skills": {
@@ -12035,7 +11042,7 @@
    }
   },
   "skills4_raven": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_raven.eft",
    "request_patch": {
     "character": {
      "skills": {
@@ -12096,7 +11103,7 @@
   },
   "skills4_rifter": {
    "cap_state_percent": 78.098756014288,
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_rifter.eft",
    "request_patch": {
     "character": {
      "skills": {
@@ -12156,7 +11163,7 @@
    }
   },
   "skills4_sabre": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_sabre.eft",
    "request_patch": {
     "character": {
      "skills": {
@@ -12216,7 +11223,7 @@
    }
   },
   "skills4_stiletto": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_stiletto.eft",
    "request_patch": {
     "character": {
      "skills": {
@@ -12277,7 +11284,7 @@
   },
   "skills4_svipul": {
    "cap_state_percent": 54.88625250124739,
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_svipul.eft",
    "request_patch": {
     "character": {
      "skills": {
@@ -12338,7 +11345,7 @@
   },
   "skills4_tengu": {
    "cap_state_percent": 50.498539629542094,
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_tengu.eft",
    "request_patch": {
     "character": {
      "skills": {
@@ -12398,7 +11405,7 @@
    }
   },
   "skills4_vargur": {
-   "eft": "tests/fits/exct_venture.eft",
+   "eft": "tests/fits/exct_vargur.eft",
    "request_patch": {
     "character": {
      "skills": {

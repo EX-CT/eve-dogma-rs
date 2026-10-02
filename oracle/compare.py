@@ -92,14 +92,14 @@ def main(files):
             req = json.loads(p.stdout)
         if any((req.get("fleet") or {}).values()) or any(p.get("kind") not in ("module", "drone") for p in req.get("projected", [])):
             print(f"{name}: SKIP (oracle lacks projection/fleet)"); continue
-        rp = TMP / f"{name}.json"; rp.write_text(json.dumps(req)); reqs.append((name, rp))
+        rp = TMP / f"{name}.json"; rp.write_text(json.dumps(req)); reqs.append((name, rp, f))
     env = dict(os.environ, PYTHONPATH=f"{REF}/stubs", ORACLE_REPEAT="3")
-    pr = subprocess.run([f"{REF}/pyfa-venv/bin/python", str(ROOT / "oracle/pyfa_oracle.py"), *[str(p) for _, p in reqs]],
+    pr = subprocess.run([f"{REF}/pyfa-venv/bin/python", str(ROOT / "oracle/pyfa_oracle.py"), *[str(p) for _, p, _ in reqs]],
                         capture_output=True, text=True, cwd=f"{REF}/pyfa", env=env)
     orc = {json.loads(l)["file"][:-5]: json.loads(l) for l in pr.stdout.splitlines() if l.startswith("{")}
     if pr.returncode: print(pr.stderr[-3000:])
     total = ok = 0; report = {}; expected = {}
-    for name, rp in reqs:
+    for name, rp, f in reqs:
         if name not in orc or "error" in orc[name]: print(f"{name}: SKIP oracle error {orc.get(name, {}).get('error')}"); continue
         st = json.loads(subprocess.run([BIN, "calc", str(rp)], capture_output=True, text=True).stdout)
         a, b = ours(st), pyfa(orc[name]["stats"])
