@@ -2,6 +2,9 @@
 name = "eve-dogma"
 version = "0.1.0"
 edition = "2024"
+license = "LGPL-3.0-or-later"
+description = "Stateless, deterministic EVE Online fitting engine (dogma) with CLI and JSONL RPC"
+repository = "https://github.com/EX-CT/eve-dogma-rs"
 
 [dependencies]
 flate2 = "1.1.10"
