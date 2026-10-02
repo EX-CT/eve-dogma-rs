@@ -52,8 +52,17 @@ impl PartialOrd for Ev {
 }
 impl Ord for Ev {
     fn cmp(&self, o: &Self) -> Ordering {
-        // min-heap on time, then insertion order
-        o.t.partial_cmp(&self.t).unwrap_or(Ordering::Equal).then(o.seq.cmp(&self.seq))
+        // min-heap with Python-list ordering like Pyfa's heapq of
+        // [t, duration, capNeed, shot, clipSize, reloadTime, isInjector], then insertion order
+        let f = |a: f64, b: f64| b.partial_cmp(&a).unwrap_or(Ordering::Equal);
+        f(self.t, o.t)
+            .then(f(self.duration, o.duration))
+            .then(f(self.cap_need, o.cap_need))
+            .then(o.shot.cmp(&self.shot))
+            .then(o.clip.cmp(&self.clip))
+            .then(f(self.reload, o.reload))
+            .then(o.inj.cmp(&self.inj))
+            .then(o.seq.cmp(&self.seq))
     }
 }
 

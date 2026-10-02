@@ -211,7 +211,11 @@ impl<'a> Fit<'a> {
             "other"
         };
         let src = it.charge.unwrap_or(i);
-        let mult = if self.has(i, id.dmg_mult) { self.get(i, id.dmg_mult) } else { 1.0 };
+        let mut mult = if self.has(i, id.dmg_mult) { self.get(i, id.dmg_mult) } else { 1.0 };
+        if kind == "missile" && it.charge.is_some() {
+            // missile damage is scaled by the pilot's missileDamageMultiplier (BCS etc. modify the character)
+            mult *= self.get(self.char, self.ds.attr_id("missileDamageMultiplier"));
+        }
         let d = Dmg {
             em: self.get(src, id.dmg[0]) * mult,
             th: self.get(src, id.dmg[1]) * mult,
@@ -309,7 +313,7 @@ impl<'a> Fit<'a> {
             let (sp, _, _) = spoolup(g(i, "damageMultiplierBonusMax"), g(i, "damageMultiplierBonusPerCycle"), raw / 1000.0, spool);
             let vol_spooled = base.scale(1.0 + sp);
             let dps = if cyc > 0.0 { vol_spooled.scale(1000.0 / cyc) } else { Dmg::default() };
-            w_vol.add(&base);
+            w_vol.add(&vol_spooled); // Pyfa reports spooled volley
             w_dps.add(&dps);
             let opt = g(i, "maxRange");
             let fo = g(i, "falloff");
@@ -317,7 +321,7 @@ impl<'a> Fit<'a> {
                 "module_index": self.items[i].req_index, "type_id": self.items[i].type_id,
                 "name": ds.types[&self.items[i].type_id].name, "kind": kind,
                 "charge_type_id": self.items[i].charge.map(|c| self.items[c].type_id),
-                "volley": base.json(), "dps": dps.json(), "cycle_time_ms": cyc,
+                "volley": vol_spooled.json(), "dps": dps.json(), "cycle_time_ms": cyc,
             });
             if kind == "turret" {
                 w["optimal_m"] = json!(opt);
@@ -336,6 +340,7 @@ impl<'a> Fit<'a> {
             }
             if sp > 0.0 {
                 w["spool_multiplier"] = json!(1.0 + sp);
+                w["volley_unspooled"] = base.json();
             }
             weapons.push(w);
         }
@@ -487,6 +492,10 @@ impl<'a> Fit<'a> {
             let is_inj = booster_grp(i);
             if is_inj {
                 cap_need = -self.items[i].charge.map(|c| g(c, "capacitorBonus")).unwrap_or(0.0);
+            }
+            if self.has_effect_named(i, &["energyNosferatuFalloff"]) && !req.options.nos_no_target_cap {
+                // local nosferatu counts as cap income (assumes the target has cap), like Pyfa
+                cap_need = -g(i, "powerTransferAmount");
             }
             let cyc_raw = self.raw_cycle_ms(i, &id);
             let full = cyc_raw + self.get(i, id.reactivation);

@@ -207,6 +207,9 @@ pub struct CapSimOpts {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Options {
+    /// Treat local nosferatu as cap income (default) - set true to ignore it (target without cap).
+    #[serde(default)]
+    pub nos_no_target_cap: bool,
     #[serde(default)]
     pub factor_reload: bool,
     #[serde(default)]

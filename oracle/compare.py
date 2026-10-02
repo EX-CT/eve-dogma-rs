@@ -1,0 +1,113 @@
+#!/usr/bin/env python3
+"""Compare eve-dogma-rs against the Pyfa oracle on a corpus of EFT fits (All-V character, reload off).
+usage: python3 oracle/compare.py tests/fits/*.eft  -> writes oracle/results/*.json and prints a table.
+Runs the oracle in Pyfa's venv (PYFA_VENV); this file itself does not import Pyfa (MIT)."""
+import json, os, subprocess, sys, math, pathlib
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+BIN = str(ROOT / "target/release/eve-dogma")
+REF = os.environ.get("EXCT_REF", "/workspace/exct-eve/ref")
+TMP = pathlib.Path(os.environ.get("CMP_TMP", "/tmp/cmp")); TMP.mkdir(exist_ok=True)
+
+def ours(st):
+    r, d, o, c, n, t = st["resources"], st["defense"], st["offense"]["total"], st["capacitor"], st["navigation"], st["targeting"]
+    return {
+        "cpu_used": r["cpu"]["used"], "cpu_total": r["cpu"]["total"], "power_used": r["power"]["used"], "power_total": r["power"]["total"],
+        "calibration_used": r["calibration"]["used"], "drone_bandwidth_used": r["drone_bandwidth"]["used"],
+        "hp.shield": d["hp"]["shield"], "hp.armor": d["hp"]["armor"], "hp.hull": d["hp"]["hull"],
+        "ehp.shield": d["ehp"]["shield"], "ehp.armor": d["ehp"]["armor"], "ehp.hull": d["ehp"]["hull"],
+        **{f"res.{l}.{k}": d["resonance"][l][k] for l in ("shield", "armor", "hull") for k in ("em", "thermal", "kinetic", "explosive")},
+        "weapon_dps": o["weapon_dps"], "weapon_volley": o["weapon_volley"], "drone_dps": o["drone_dps"], "drone_volley": o["drone_volley"],
+        "cap_capacity": c["capacity"], "cap_recharge_s": c["recharge_time_s"], "cap_stable": c["stable"],
+        "cap_state": c["stable_percent"] if c["stable"] else c.get("lasts_s"),
+        "max_velocity": n["max_velocity"], "align_time_s": n["align_time_s"], "mass": n["mass"], "signature_radius": n["signature_radius"],
+        "warp_speed": n["warp_speed_au_s"], "max_targets": t["max_targets"], "max_target_range": t["max_range_m"],
+        "scan_resolution": t["scan_resolution"], "scan_strength": t["sensor_strength"],
+        "hi_slots": r["slots"]["high"]["total"], "med_slots": r["slots"]["mid"]["total"], "low_slots": r["slots"]["low"]["total"],
+    }
+
+def pyfa(s):
+    out = {k: s[k] for k in ("cpu_used", "cpu_total", "power_used", "power_total", "calibration_used", "drone_bandwidth_used",
+                             "weapon_dps", "weapon_volley", "drone_dps", "drone_volley", "cap_capacity", "cap_recharge_s", "cap_stable",
+                             "max_velocity", "align_time_s", "mass", "signature_radius", "warp_speed", "max_targets", "max_target_range",
+                             "scan_resolution", "scan_strength", "hi_slots", "med_slots", "low_slots")}
+    for l in ("shield", "armor", "hull"):
+        out[f"hp.{l}"] = s["hp"][l]; out[f"ehp.{l}"] = s["ehp"][l]
+        for k in ("em", "thermal", "kinetic", "explosive"):
+            out[f"res.{l}.{k}"] = s["resonance"][l][k]
+    cs = s["cap_state"]
+    out["cap_state"] = cs if s["cap_stable"] else cs
+    return out
+
+# metric -> JSON pointer into FitStats (used to generate tests/oracle/pyfa_expected.json for `cargo test`)
+PTR = {
+    "cpu_used": "/resources/cpu/used", "cpu_total": "/resources/cpu/total", "power_used": "/resources/power/used",
+    "power_total": "/resources/power/total", "calibration_used": "/resources/calibration/used",
+    "drone_bandwidth_used": "/resources/drone_bandwidth/used",
+    **{f"hp.{l}": f"/defense/hp/{l}" for l in ("shield", "armor", "hull")},
+    **{f"ehp.{l}": f"/defense/ehp/{l}" for l in ("shield", "armor", "hull")},
+    **{f"res.{l}.{k}": f"/defense/resonance/{l}/{k}" for l in ("shield", "armor", "hull") for k in ("em", "thermal", "kinetic", "explosive")},
+    "weapon_dps": "/offense/total/weapon_dps", "weapon_volley": "/offense/total/weapon_volley",
+    "drone_dps": "/offense/total/drone_dps", "drone_volley": "/offense/total/drone_volley",
+    "cap_capacity": "/capacitor/capacity", "cap_recharge_s": "/capacitor/recharge_time_s", "cap_stable": "/capacitor/stable",
+    "max_velocity": "/navigation/max_velocity", "align_time_s": "/navigation/align_time_s", "mass": "/navigation/mass",
+    "signature_radius": "/navigation/signature_radius", "warp_speed": "/navigation/warp_speed_au_s",
+    "max_targets": "/targeting/max_targets", "max_target_range": "/targeting/max_range_m",
+    "scan_resolution": "/targeting/scan_resolution", "scan_strength": "/targeting/sensor_strength",
+    "hi_slots": "/resources/slots/high/total", "med_slots": "/resources/slots/mid/total", "low_slots": "/resources/slots/low/total",
+}
+
+# Known, explained divergences (see PROGRESS.md / docs/03): metric skipped in the generated test expectations.
+KNOWN = {
+    "esf_items_4": {"max_velocity": "two prop mods active at once (invalid fit); Pyfa re-reads mass per handler"},
+    "esf_items_7": {"cap_capacity": "structure module on a ship (invalid fit): Pyfa applies it, SDE domain says no"},
+    "esf_projection_18": {"align_time_s": "data drift: Pyfa eve.db (client 3532181) Paladin agility 0.858 vs SDE 3569502 0.0858"},
+    "esf_structure_bonus_1": {"hp.armor": "SDE: unpowered structure zeroes plating bonus (ESF agrees); Pyfa hand-written handler ignores power state",
+                              "ehp.armor": "same as hp.armor"},
+}
+
+def close(a, b):
+    if isinstance(a, bool) or isinstance(b, bool): return bool(a) == bool(b)
+    if a is None or b is None: return a == b
+    return math.isclose(float(a), float(b), rel_tol=1e-4, abs_tol=1e-3)
+
+def main(files):
+    reqs = []
+    for f in files:
+        name = pathlib.Path(f).stem
+        p = subprocess.run([BIN, "eft", f, "--skills", "5"], capture_output=True, text=True)
+        if p.returncode: print(f"{name}: SKIP parse ({p.stderr.strip()})"); continue
+        req = json.loads(p.stdout)
+        if req.get("fighters") or req.get("projected") or any((req.get("fleet") or {}).values()) or any(m.get("mutation") for m in req.get("modules", [])) \
+           or any(d.get("mutation") for d in req.get("drones", [])):
+            print(f"{name}: SKIP (oracle lacks fighters/projection/fleet/mutations)"); continue
+        rp = TMP / f"{name}.json"; rp.write_text(json.dumps(req)); reqs.append((name, rp))
+    env = dict(os.environ, PYTHONPATH=f"{REF}/stubs", ORACLE_REPEAT="3")
+    pr = subprocess.run([f"{REF}/pyfa-venv/bin/python", str(ROOT / "oracle/pyfa_oracle.py"), *[str(p) for _, p in reqs]],
+                        capture_output=True, text=True, cwd=f"{REF}/pyfa", env=env)
+    orc = {json.loads(l)["file"][:-5]: json.loads(l) for l in pr.stdout.splitlines() if l.startswith("{")}
+    if pr.returncode: print(pr.stderr[-3000:])
+    total = ok = 0; report = {}; expected = {}
+    for name, rp in reqs:
+        if name not in orc or "error" in orc[name]: print(f"{name}: SKIP oracle error {orc.get(name, {}).get('error')}"); continue
+        st = json.loads(subprocess.run([BIN, "calc", str(rp)], capture_output=True, text=True).stdout)
+        a, b = ours(st), pyfa(orc[name]["stats"])
+        bad = {k: (a[k], b[k]) for k in b if k != "cap_state" and not close(a[k], b[k])}
+        if b["cap_stable"] and a["cap_stable"] and not close(a["cap_state"], b["cap_state"]): bad["cap_state"] = (a["cap_state"], b["cap_state"])
+        for k in list(bad):
+            if k in KNOWN.get(name, {}): bad.pop(k)
+        expected[name] = {"eft": f"tests/fits/{name}.eft",
+                          "values": {PTR[k]: v for k, v in b.items() if k in PTR and k not in KNOWN.get(name, {})},
+                          **({"cap_state_percent": b["cap_state"]} if b["cap_stable"] else {})}
+        total += 1; ok += not bad
+        report[name] = {"mismatches": bad, "pyfa_ms": orc[name]["timing_ms"]}
+        print(f"{name}: {'OK' if not bad else 'DIFF ' + json.dumps(bad)}")
+    print(f"\n{ok}/{total} fits match Pyfa on all {len(b) if reqs else 0} compared metrics (known divergences excluded: {sum(len(v) for v in KNOWN.values())})")
+    (ROOT / "tests/oracle").mkdir(exist_ok=True)
+    if os.environ.get("WRITE_EXPECTED"):
+        (ROOT / "tests/oracle/pyfa_expected.json").write_text(json.dumps({"generator": "oracle/compare.py (Pyfa eos as black-box)",
+            "pyfa_client_build": 3532181, "skills": "all 5", "known_divergences": KNOWN, "fits": expected}, indent=1, sort_keys=True, default=str))
+    (ROOT / "oracle/results").mkdir(exist_ok=True)
+    (ROOT / "oracle/results/latest.json").write_text(json.dumps(report, indent=1, sort_keys=True, default=str))
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

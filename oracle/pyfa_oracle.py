@@ -25,7 +25,11 @@ from eos.saveddata.drone import Drone  # noqa: E402
 from eos.saveddata.implant import Implant  # noqa: E402
 from eos.saveddata.booster import Booster  # noqa: E402
 from eos.saveddata.damagePattern import DamagePattern  # noqa: E402
-from eos.const import FittingModuleState, FittingSlot  # noqa: E402
+from eos.const import FittingModuleState, FittingSlot, SpoolType  # noqa: E402
+from eos.utils.spoolSupport import SpoolOptions  # noqa: E402
+
+# what Pyfa's GUI passes (globalDefaultSpoolupPercentage = 100 %); matches EXCT's default spool = max
+SPOOL = SpoolOptions(SpoolType.SPOOL_SCALE, eos.config.settings["globalDefaultSpoolupPercentage"], False)
 
 STATES = {"offline": FittingModuleState.OFFLINE, "online": FittingModuleState.ONLINE,
           "active": FittingModuleState.ACTIVE, "overheated": FittingModuleState.OVERHEATED}
@@ -47,31 +51,40 @@ def character(req):
     return ch
 
 
+def item(tid):
+    if isinstance(tid, dict):
+        tid = tid["type_id"]
+    it = eos.db.getItem(int(tid))
+    if it is None:
+        raise KeyError("type %s not in Pyfa eve.db" % tid)
+    return it
+
+
 def build(req):
-    item = eos.db.getItem(req["ship"]["type_id"])
-    ship = Citadel(item) if item.category.name == "Structure" else Ship(item)
+    sh = item(req["ship"]["type_id"])
+    ship = Citadel(sh) if sh.category.name == "Structure" else Ship(sh)
     fit = Fit(ship, "oracle")
     fit.character = character(req)
     if req["ship"].get("mode_type_id"):
         fit.mode = ship.validateModeItem(eos.db.getItem(req["ship"]["mode_type_id"]))
     for m in req.get("modules", []):
-        mod = Module(eos.db.getItem(m["type_id"]))
+        mod = Module(item(m["type_id"]))
         if m.get("charge_type_id"):
-            mod.charge = eos.db.getItem(m["charge_type_id"])
+            mod.charge = item(m["charge_type_id"])
         fit.modules.append(mod)
         mod.owner = fit
         st = STATES[m.get("state", "online")]
         mod.state = st if mod.isValidState(st) else FittingModuleState.ONLINE
     for d in req.get("drones", []):
-        dr = Drone(eos.db.getItem(d["type_id"]))
+        dr = Drone(item(d["type_id"]))
         dr.amount = d.get("quantity", 1)
         dr.amountActive = d.get("active", 0) or 0
         fit.drones.append(dr)
         dr.owner = fit
     for i in req.get("implants", []):
-        fit.implants.append(Implant(eos.db.getItem(i)))
+        fit.implants.append(Implant(item(i)))
     for b in req.get("boosters", []):
-        fit.boosters.append(Booster(eos.db.getItem(b["type_id"])))
+        fit.boosters.append(Booster(item(b["type_id"])))
     dp = req.get("damage_pattern") or {"em": 25, "thermal": 25, "kinetic": 25, "explosive": 25}
     fit.damagePattern = DamagePattern(dp["em"], dp["thermal"], dp["kinetic"], dp["explosive"])
     fit.factorReload = bool(req.get("options", {}).get("factor_reload", False))
@@ -81,8 +94,8 @@ def build(req):
 def stats(fit):
     s = fit.ship
     g = s.getModifiedItemAttr
-    dps = fit.getTotalDps()
-    vol = fit.getTotalVolley()
+    dps = fit.getTotalDps(spoolOptions=SPOOL)
+    vol = fit.getTotalVolley(spoolOptions=SPOOL)
     out = {
         "cpu_used": fit.cpuUsed, "cpu_total": g("cpuOutput"), "power_used": fit.pgUsed, "power_total": g("powerOutput"),
         "calibration_used": fit.calibrationUsed, "drone_bandwidth_used": fit.droneBandwidthUsed,
@@ -90,7 +103,7 @@ def stats(fit):
         "resonance": {l: {t: g(("%s%sDamageResonance" % (l, t.capitalize())) if l != "hull" else "%sDamageResonance" % t)
                           for t in ("em", "thermal", "kinetic", "explosive")} for l in ("shield", "armor", "hull")},
         "tank": fit.tank,
-        "weapon_dps": fit.getWeaponDps().total, "weapon_volley": fit.getWeaponVolley().total,
+        "weapon_dps": fit.getWeaponDps(spoolOptions=SPOOL).total, "weapon_volley": fit.getWeaponVolley(spoolOptions=SPOOL).total,
         "drone_dps": fit.getDroneDps().total, "drone_volley": fit.getDroneVolley().total,
         "dps": dps.total, "volley": vol.total,
         "cap_capacity": g("capacitorCapacity"), "cap_recharge_s": g("rechargeRate") / 1000,
@@ -108,7 +121,11 @@ def stats(fit):
 def main():
     for path in sys.argv[1:]:
         req = json.load(open(path))
-        fit = build(req)
+        try:
+            fit = build(req)
+        except Exception as e:  # e.g. type missing from Pyfa's (older) eve.db
+            print(json.dumps({"file": os.path.basename(path), "error": repr(e)}))
+            continue
         t0 = time.perf_counter()
         fit.calculateModifiedAttributes()
         st = stats(fit)

@@ -10,6 +10,15 @@ const EXEMPT_CATEGORIES: [u32; 6] = [6, 8, 16, 20, 32, 65];
 pub const REQ_SKILL_ATTRS: [u32; 6] = [182, 183, 184, 1285, 1289, 1290];
 pub const ATTR_SKILL_LEVEL: u32 = 280;
 const EFFECT_SKILL_EFFECT: u32 = 132;
+/// On structures (category 65) pilot skills do not affect the structure, except these effects
+/// (max locked targets + skillStructure* bonuses). Matches observed game/Pyfa behaviour.
+const STRUCTURE_SKILL_EFFECT_NAMES: [&str; 5] = [
+    "targetingMaxTargetBonusModAddMaxLockedTargetsLocationChar",
+    "skillStructureMissileDamageBonus",
+    "skillStructureElectronicSystemsCapNeedBonus",
+    "skillStructureEngineeringSystemsCapNeedBonus",
+    "skillStructureDoomsdayDurationBonus",
+];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
@@ -277,7 +286,19 @@ impl<'a> Fit<'a> {
             fit.items[idx].attrs.insert(ATTR_SKILL_LEVEL, Attr::new(l.min(5) as f64));
             fit.items[idx].owned = false;
         }
-        if let Some(mode) = req.ship.mode_type_id {
+        // Tactical destroyers must have a mode: default to the first (lowest type id) like Pyfa / the client.
+        let mode_id = req.ship.mode_type_id.or_else(|| {
+            let ship_name = ds.types.get(&req.ship.type_id)?.name.to_lowercase();
+            let m = ds
+                .types
+                .iter()
+                .filter(|(_, t)| t.group == 1306 && t.name.to_lowercase().starts_with(&ship_name))
+                .map(|(id, _)| *id)
+                .min()?;
+            fit.warnings.push(format!("no tactical mode given; defaulted to type {m}"));
+            Some(m)
+        });
+        if let Some(mode) = mode_id {
             let idx = fit.new_item(mode, Kind::Mode, Loc::Nowhere, "/ship/mode_type_id")?;
             fit.items[idx].owned = false;
         }
@@ -349,6 +370,25 @@ impl<'a> Fit<'a> {
                 other => fit.warnings.push(format!("projected kind '{other}' not supported yet (index {i})")),
             }
         }
+        // system security -> securityModifier (attr used by structure rigs etc.). Default nullsec, like Pyfa.
+        {
+            let sec = req.environment.system_security.as_deref().unwrap_or("nullsec").to_lowercase();
+            let src = match sec.as_str() {
+                "hisec" | "highsec" | "high" => "hiSecModifier",
+                "lowsec" | "low" => "lowSecModifier",
+                "nullsec" | "null" | "wspace" | "wormhole" | "w-space" => "nullSecModifier",
+                other => {
+                    fit.warnings.push(format!("unknown system_security '{other}', using nullsec"));
+                    "nullSecModifier"
+                }
+            };
+            let (src_id, dst_id) = (ds.attr_id(src), ds.attr_id("securityModifier"));
+            for it in fit.items.iter_mut() {
+                if let Some(v) = it.attrs.get(&src_id).map(|a| a.base) {
+                    it.attrs.insert(dst_id, Attr::new(v));
+                }
+            }
+        }
         // attribute overrides (by type id, apply to all items of that type)
         for o in &req.overrides {
             for it in fit.items.iter_mut().filter(|it| it.type_id == o.type_id) {
@@ -356,6 +396,7 @@ impl<'a> Fit<'a> {
             }
         }
         fit.register_all(req);
+        fit.apply_rah(req);
         Ok(fit)
     }
 
@@ -466,10 +507,16 @@ impl<'a> Fit<'a> {
         let e_slot = ds.effect_id("slotModifier");
         let e_hp = ds.effect_id("hardPointModifierEffect");
         let e_mjd = ds.effect_id("microJumpDrive");
+        let is_structure = self.items[self.ship].category == 65;
+        let structure_ok: Vec<u32> = STRUCTURE_SKILL_EFFECT_NAMES.iter().map(|n| ds.effect_id(n)).collect();
         for i in 0..n {
             let kind = self.items[i].kind;
             if kind == Kind::Projected {
                 self.register_projected(i);
+                continue;
+            }
+            if is_structure && matches!(kind, Kind::Drone | Kind::Implant | Kind::Booster) {
+                // structures ignore pilot implants/boosters and cannot use drones
                 continue;
             }
             let state = self.effective_state(i);
@@ -480,6 +527,13 @@ impl<'a> Fit<'a> {
                     continue;
                 }
                 let Some(e) = ds.effects.get(&eid) else { continue };
+                if is_structure
+                    && kind == Kind::Skill
+                    && !structure_ok.contains(&eid)
+                    && !e.mods.iter().all(|m| m.domain == Domain::Item)
+                {
+                    continue;
+                }
                 // booster side effects only when selected
                 if e.fitting_usage_chance_attr.is_some() && !self.items[i].booster_side_effects.contains(&eid) {
                     continue;
@@ -517,7 +571,8 @@ impl<'a> Fit<'a> {
                 if eid == e_mjd {
                     let a = ds.attr_id("signatureRadiusBonusPercent");
                     let ship = self.ship;
-                    self.push_mod(ship, ds.attr_id("signatureRadius"), 6, Src::Attr { item: i, attr: a }, i, src_cat);
+                    // MJD sig bloom is not stacking-penalised (unlike the MWD's)
+                    self.push_mod(ship, ds.attr_id("signatureRadius"), 6, Src::Attr { item: i, attr: a }, i, 6);
                     continue;
                 }
                 if eid == e_slot {
@@ -650,15 +705,105 @@ impl<'a> Fit<'a> {
             if self.items[i].kind != Kind::Module || self.items[i].state < State::Active {
                 continue;
             }
-            let src_item = self.items[i].charge.unwrap_or(i);
+            // chargeBonusWarfareCharge PostAssigns warfareBuffNID onto the module and PostMuls the module's
+            // warfareBuffNValue by the charge multiplier, so both are read (modified) from the module.
+            let src_item = i;
             for (ida, vala) in &pairs {
-                let id = self.items[src_item].attrs.get(ida).map(|a| a.base as u32).unwrap_or(0);
+                let id = if self.has(i, *ida) { self.get(i, *ida) as u32 } else { 0 };
                 if id == 0 || explicit.contains(&id) {
                     continue;
                 }
                 self.apply_buff(id, Src::Attr { item: src_item, attr: *vala }, i);
             }
         }
+    }
+
+    fn clear_cache(&self) {
+        for it in &self.items {
+            for a in it.attrs.values() {
+                a.val.set(None);
+            }
+        }
+    }
+
+    /// Reactive Armor Hardener adaptation (no modifierInfo in the SDE). Simulates RAH cycles against the
+    /// incoming damage pattern (after the ship's other armor resists) until it loops, averages the loop and
+    /// applies the averaged resonances as a stacking-penalised PreMul - same algorithm as Pyfa/eos (LGPL).
+    /// `options.rah = "disable"` applies the module's unadapted resonances instead.
+    fn apply_rah(&mut self, req: &FitRequest) {
+        let ds = self.ds;
+        let eid = ds.effect_id("adaptiveArmorHardener");
+        if eid == 0 {
+            return;
+        }
+        let names = ["armorEmDamageResonance", "armorThermalDamageResonance", "armorKineticDamageResonance", "armorExplosiveDamageResonance"];
+        let attrs: Vec<u32> = names.iter().map(|n| ds.attr_id(n)).collect();
+        let shift_attr = ds.attr_id("resistanceShiftAmount");
+        let rahs: Vec<usize> = (0..self.items.len())
+            .filter(|&i| {
+                self.items[i].kind == Kind::Module && self.items[i].state >= State::Active && self.items[i].effects.iter().any(|(e, _)| *e == eid)
+            })
+            .collect();
+        let disable = req.options.rah.as_deref() == Some("disable");
+        let dp = req.damage_pattern.unwrap_or(crate::request::Resists { em: 25.0, thermal: 25.0, kinetic: 25.0, explosive: 25.0 });
+        let pattern = [dp.em, dp.thermal, dp.kinetic, dp.explosive];
+        let ship = self.ship;
+        for m in rahs {
+            self.clear_cache();
+            let mut res: Vec<f64> = attrs.iter().map(|&a| self.get(m, a)).collect();
+            if !disable {
+                let base: Vec<f64> = (0..4).map(|k| pattern[k] * self.get(ship, attrs[k])).collect();
+                let shift = self.get(m, shift_attr) / 100.0;
+                let mut cycles: Vec<[f64; 4]> = Vec::new();
+                let mut loop_start: isize = -20;
+                for _ in 0..50 {
+                    // in-game tie order em, explosive, kinetic, thermal
+                    let mut t: Vec<(usize, f64, f64)> = [0usize, 3, 2, 1].iter().map(|&k| (k, base[k] * res[k], res[k])).collect();
+                    t.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal)); // stable like Python
+                    let (c0, c1, c2, c3);
+                    if t[2].1 == 0.0 {
+                        c0 = 1.0 - t[0].2;
+                        c1 = 1.0 - t[1].2;
+                        c2 = 1.0 - t[2].2;
+                        c3 = -(c0 + c1 + c2);
+                    } else if t[1].1 == 0.0 {
+                        c0 = 1.0 - t[0].2;
+                        c1 = 1.0 - t[1].2;
+                        c2 = -(c0 + c1) / 2.0;
+                        c3 = c2;
+                    } else {
+                        c0 = shift.min(1.0 - t[0].2);
+                        c1 = shift.min(1.0 - t[1].2);
+                        c2 = -(c0 + c1) / 2.0;
+                        c3 = c2;
+                    }
+                    res[t[0].0] = t[0].2 + c0;
+                    res[t[1].0] = t[1].2 + c1;
+                    res[t[2].0] = t[2].2 + c2;
+                    res[t[3].0] = t[3].2 + c3;
+                    if let Some(i) = cycles.iter().position(|v| (0..4).all(|k| (res[k] - v[k]).abs() <= 1e-6)) {
+                        loop_start = i as isize;
+                        break;
+                    }
+                    cycles.push([res[0], res[1], res[2], res[3]]);
+                }
+                let start = if loop_start >= 0 { loop_start as usize } else { cycles.len().saturating_sub(20) };
+                let lp = &cycles[start..];
+                if !lp.is_empty() {
+                    for k in 0..4 {
+                        res[k] = ((lp.iter().map(|v| v[k]).sum::<f64>() / lp.len() as f64) * 1000.0).round() / 1000.0;
+                    }
+                }
+            }
+            let cat = self.items[m].category;
+            for k in 0..4 {
+                if !disable {
+                    self.push_mod(m, attrs[k], 7, Src::Const(res[k]), m, cat);
+                }
+                self.push_mod(ship, attrs[k], 0, Src::Const(res[k]), m, cat);
+            }
+        }
+        self.clear_cache();
     }
 
     fn apply_buff(&mut self, id: u32, src: Src, source_item: usize) {
