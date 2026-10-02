@@ -910,9 +910,14 @@ impl<'a> Fit<'a> {
                     } else {
                         m.extra
                     };
-                    let targets = self.targets(i, m.func, m.domain, extra);
                     // Bastion hull resists are not stacking penalised in game (observed by Pyfa); SDE marks the attrs non-stackable
                     let cat = if eid == e_bastion && HULL_RESONANCES.contains(&m.modified) { 6 } else { src_cat };
+                    if m.domain == Domain::Item && m.func == Func::Item {
+                        // self-modifier (most skill effects): no target list needed
+                        self.push_mod(i, m.modified, m.op, Src::Attr { item: i, attr: m.modifying }, i, cat);
+                        continue;
+                    }
+                    let targets = self.targets(i, m.func, m.domain, extra);
                     for t in targets {
                         self.push_mod(t, m.modified, m.op, Src::Attr { item: i, attr: m.modifying }, i, cat);
                     }
