@@ -208,7 +208,7 @@ Conventions matching Pyfa (deliberate): volley is spooled; local nosferatu is ca
   booster fits per buff id), see "Semantics". Engine: projected Tracking Disruptors and Guidance Disruptors (Pyfa
   Effect6424 / Effect6423: target's Gunnery modules / Missile Launcher Operation charges, range factor, resistance) are
   now applied (they were a warning before). Oracle-verified, incl. new amount>1 projected-fit cases.
-- v1.4.3 (2026-10-03 06:30 CST): no request/response field changes. "Semantics" now also defines abyssal weather /
+- v1.4.3 (2026-10-03 06:05 CST): no request/response field changes. "Semantics" now also defines abyssal weather /
   AoE cloud environment beacons (warfare buffs in the fleet-buff pool, drone scope, penalties), incursion system
   effects and burst projectors (full strength, no range factor). Doomsday / lance DPS = subcycles × volley / cycle
   (Pyfa `getVolleyParameters`). `cpu_used` / `pg_used` round like Python `round(v, 2)`. Oracle-verified (bench 1.8.0).

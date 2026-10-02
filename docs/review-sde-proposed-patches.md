@@ -1,6 +1,6 @@
 # Engine-owner review: eve-sde-pipeline `patches/proposed/` (dataset sde-3569502-r3)
 
-Reviewer: Variant A (eve-dogma-rs), 2026-10-03 06:30 CST. Method: A implements the same behaviour engine-side
+Reviewer: Variant A (eve-dogma-rs), 2026-10-03 06:05 CST. Method: A implements the same behaviour engine-side
 (oracle-checked against Pyfa: bench 1.8.0 cases `aoe_*`, `standup_*`, `incursion_*`). A local build with
 `python -m sdepipe build --sde ref/sde/jsonl --out /tmp/ds-proposed --with-proposed` was then run over all 330 bench
 and test requests: A's output is **identical** with and without the proposed patches. A keeps these effects
