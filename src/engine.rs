@@ -928,7 +928,8 @@ impl<'a> Fit<'a> {
                 if e.mods.is_empty() && kind == Kind::Module && state >= State::Active && self.local_special(i, e.name.as_str(), src_cat) {
                     continue;
                 }
-                if kind == Kind::Beacon && e.name == "OffensiveDefensiveReduction" {
+                // engine-side unless the dataset carries the effect as stacking-exempt modifiers (revision 4+)
+                if kind == Kind::Beacon && e.name == "OffensiveDefensiveReduction" && (e.mods.is_empty() || !e.stacking_exempt) {
                     self.incursion_effect(i);
                     continue;
                 }
@@ -1018,7 +1019,8 @@ impl<'a> Fit<'a> {
                         m.extra
                     };
                     // Bastion hull resists are not stacking penalised in game (observed by Pyfa); SDE marks the attrs non-stackable
-                    let cat = if eid == e_bastion && HULL_RESONANCES.contains(&m.modified) { 6 } else { src_cat };
+                    // category 6 is never stacking-penalised: used for effects flagged stacking_exempt in the dataset
+                    let cat = if e.stacking_exempt || eid == e_bastion && HULL_RESONANCES.contains(&m.modified) { 6 } else { src_cat };
                     if m.domain == Domain::Item && m.func == Func::Item {
                         // self-modifier (most skill effects): no target list needed
                         self.push_mod(i, m.modified, m.op, Src::Attr { item: i, attr: m.modifying }, i, cat);
@@ -1083,6 +1085,7 @@ impl<'a> Fit<'a> {
                 }
             });
             let target_offense_ok = self.items[ship].base_opt(ds.attr_id("disallowOffensiveModifiers")).map(|a| a == 0.0).unwrap_or(true);
+            let p_cat = if e.stacking_exempt { 6 } else { src_cat };
             let push = |fit: &mut Fit, target_attr: u32, src_attr: u32, op: i32| {
                 let mul = op == 4 || op == 0;
                 fit.push_mod(
@@ -1091,7 +1094,7 @@ impl<'a> Fit<'a> {
                     op,
                     Src::Projected { item: i, attr: src_attr, factor, target: ship, resist, mul },
                     i,
-                    src_cat,
+                    p_cat,
                 );
             };
             // burst projectors and the Standup weapon disruptor stay engine-side even if a dataset revision gives

@@ -28,6 +28,11 @@ cargo build --release
 ./target/release/eve-dogma bench req.json -n 2000
 ```
 
+Dataset revisions: any `sde-3569502` revision (r1–r4) gives identical results. Effects flagged `"stacking_exempt": true`
+(r4: incursion effect 4728) are never stacking-penalised. When the dataset carries OffensiveDefensiveReduction as
+stacking-exempt modifiers, they are applied generically instead of the engine-side handler, so nothing is applied
+twice. The burst-projector patch (0101) stays engine-side.
+
 Cold start: the parsed dataset is cached as bincode in `$EVE_DOGMA_CACHE_DIR` (default `<tmp>/eve-dogma-cache`),
 keyed by the dataset file's SHA-256 and the executable's size/mtime (never stale). A cached start loads the dataset
 in about 15 ms instead of about 100 ms; the output is byte-identical. Disable with `EVE_DOGMA_NO_CACHE=1`.

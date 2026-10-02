@@ -70,6 +70,9 @@ pub struct EffectInfo {
     pub is_offensive: bool,
     pub is_assistance: bool,
     pub mods: Vec<Modifier>,
+    /// dataset flag (revision 4+): modifiers of this effect are never stacking-penalised
+    #[serde(default)]
+    pub stacking_exempt: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -278,6 +281,8 @@ struct RawEffect {
     is_assistance: bool,
     #[serde(default)]
     mods: Vec<(i32, i32, u32, u32, i32, u32)>,
+    #[serde(default)]
+    stacking_exempt: bool,
 }
 #[derive(Deserialize)]
 struct RawType {
@@ -426,6 +431,7 @@ impl Dataset {
                     is_offensive: e.is_offensive,
                     is_assistance: e.is_assistance,
                     mods,
+                    stacking_exempt: e.stacking_exempt,
                 },
             );
         }
