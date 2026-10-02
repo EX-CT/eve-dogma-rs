@@ -765,19 +765,31 @@ impl<'a> Fit<'a> {
     }
 
     fn targets(&self, src: usize, func: Func, domain: Domain, extra: u32) -> Vec<usize> {
+        let mut out = Vec::new();
+        self.targets_into(src, func, domain, extra, &mut out);
+        out
+    }
+
+    /// `targets` into a caller-owned buffer (cleared first): no allocation per modifier on the registration path
+    fn targets_into(&self, src: usize, func: Func, domain: Domain, extra: u32, out: &mut Vec<usize>) {
+        out.clear();
         if let Some(t) = &self.tindex {
-            let get = |m: &FxHashMap<u32, Vec<usize>>| m.get(&extra).cloned().unwrap_or_default();
+            let mut get = |m: &FxHashMap<u32, Vec<usize>>| {
+                if let Some(v) = m.get(&extra) {
+                    out.extend_from_slice(v)
+                }
+            };
             match (domain, func) {
-                (Domain::Ship, Func::Location) => return t.ship_loc.clone(),
+                (Domain::Ship, Func::Location) => return out.extend_from_slice(&t.ship_loc),
                 (Domain::Ship, Func::LocationGroup) => return get(&t.ship_group),
                 (Domain::Ship, Func::LocationRequiredSkill) => return get(&t.ship_skill),
                 (Domain::Ship, Func::OwnerRequiredSkill) => return get(&t.owned_skill),
-                (Domain::Structure, _) if !self.is_structure => return Vec::new(),
-                (Domain::Structure, Func::Location) => return t.ship_loc.clone(),
+                (Domain::Structure, _) if !self.is_structure => return,
+                (Domain::Structure, Func::Location) => return out.extend_from_slice(&t.ship_loc),
                 (Domain::Structure, Func::LocationGroup) => return get(&t.ship_group),
                 (Domain::Structure, Func::LocationRequiredSkill) => return get(&t.ship_skill),
                 (Domain::Structure, Func::OwnerRequiredSkill) => return get(&t.owned_skill),
-                (Domain::Char, Func::Location) => return t.char_loc.clone(),
+                (Domain::Char, Func::Location) => return out.extend_from_slice(&t.char_loc),
                 (Domain::Char, Func::LocationGroup) => return get(&t.char_group),
                 (Domain::Char, Func::LocationRequiredSkill | Func::OwnerRequiredSkill) => return get(&t.char_skill),
                 _ => {}
@@ -785,7 +797,6 @@ impl<'a> Fit<'a> {
         }
         let items = &self.items;
         let s = &items[src];
-        let mut out = Vec::new();
         match domain {
             Domain::Item => {
                 if func == Func::Item {
@@ -801,7 +812,7 @@ impl<'a> Fit<'a> {
             }
             Domain::Ship | Domain::Structure => {
                 if domain == Domain::Structure && !self.is_structure {
-                    return out;
+                    return;
                 }
                 match func {
                     Func::Item => out.push(self.ship),
@@ -850,7 +861,6 @@ impl<'a> Fit<'a> {
             },
             _ => {}
         }
-        out
     }
 
     fn effective_state(&self, i: usize) -> State {
@@ -887,6 +897,7 @@ impl<'a> Fit<'a> {
         let e_bastion = ds.effect_id("moduleBonusBastionModule");
         let is_structure = self.items[self.ship].category == 65;
         let structure_ok: Vec<u32> = STRUCTURE_SKILL_EFFECT_NAMES.iter().map(|n| ds.effect_id(n)).collect();
+        let mut tbuf: Vec<usize> = Vec::with_capacity(64);
         for i in 0..n {
             let kind = self.items[i].kind;
             if kind == Kind::Projected {
@@ -1035,8 +1046,8 @@ impl<'a> Fit<'a> {
                             }
                         }
                     }
-                    let targets = self.targets(i, m.func, m.domain, extra);
-                    for t in targets {
+                    self.targets_into(i, m.func, m.domain, extra, &mut tbuf);
+                    for &t in &tbuf {
                         self.push_mod(t, m.modified, m.op, Src::Attr { item: i, attr: m.modifying }, i, cat);
                     }
                 }
