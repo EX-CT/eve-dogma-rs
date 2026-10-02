@@ -90,6 +90,7 @@ def build(req):
         if m.get("charge_type_id"):
             mod.charge = item(m["charge_type_id"])
         fit.modules.append(mod)
+        ORACLE_MODS.setdefault(id(fit), []).append(mod)
         mod.owner = fit
         st = STATES[m.get("state", "online")]
         mod.state = st if mod.isValidState(st) else FittingModuleState.ONLINE
@@ -192,6 +193,28 @@ def stats(fit):
     return out
 
 
+ORACLE_MODS = {}
+
+
+def weapons(fit):
+    from eos.const import FittingHardpoint
+    out = []
+    for idx, mod in enumerate(ORACLE_MODS.get(id(fit), [])):
+        try:
+            if mod.state < FittingModuleState.ACTIVE or mod.getDps().total <= 0:
+                continue
+        except Exception:
+            continue
+        if mod.hardpoint == FittingHardpoint.TURRET:
+            out.append({"module_index": idx, "optimal_m": mod.maxRange, "falloff_m": mod.falloff,
+                        "tracking": mod.getModifiedItemAttr("trackingSpeed")})
+        elif mod.hardpoint == FittingHardpoint.MISSILE and mod.charge is not None:
+            out.append({"module_index": idx, "range_m": mod.maxRange,
+                        "explosion_radius": mod.getModifiedChargeAttr("aoeCloudSize"),
+                        "explosion_velocity": mod.getModifiedChargeAttr("aoeVelocity")})
+    return out
+
+
 def main():
     for path in sys.argv[1:]:
         req = json.load(open(path))
@@ -207,6 +230,7 @@ def main():
         t0 = time.perf_counter()
         fit.calculateModifiedAttributes()
         st = stats(fit)
+        st["weapons"] = weapons(fit)
         first = time.perf_counter() - t0
         n = int(os.environ.get("ORACLE_REPEAT", "5"))
         t1 = time.perf_counter()

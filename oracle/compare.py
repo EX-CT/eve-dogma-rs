@@ -25,7 +25,10 @@ def ours(st):
         "tank.armor": d["tank"]["raw"]["armor_repair"], "tank.shield": d["tank"]["raw"]["shield_repair"],
         "tank.hull": d["tank"]["raw"]["hull_repair"], "tank.passive": d["tank"]["raw"]["passive_shield"],
         "hi_slots": r["slots"]["high"]["total"], "med_slots": r["slots"]["mid"]["total"], "low_slots": r["slots"]["low"]["total"],
+        **{f"w{w['module_index']}.{k}": w.get(k) for w in st["offense"]["weapons"] for k in WFIELDS},
     }
+
+WFIELDS = ("optimal_m", "falloff_m", "tracking", "range_m", "explosion_radius", "explosion_velocity")
 
 def pyfa(s):
     out = {k: s[k] for k in ("cpu_used", "cpu_total", "power_used", "power_total", "calibration_used", "drone_bandwidth_used",
@@ -38,6 +41,11 @@ def pyfa(s):
             out[f"res.{l}.{k}"] = s["resonance"][l][k]
     t = s["tank"]
     out.update({"tank.armor": t["armorRepair"], "tank.shield": t["shieldRepair"], "tank.hull": t["hullRepair"], "tank.passive": t["passiveShield"]})
+    for w in s.get("weapons", []):
+        for k in WFIELDS:
+            if k in w and w[k] is not None:
+                out[f"w{w['module_index']}.{k}"] = w[k]
+                PTR[f"w{w['module_index']}.{k}"] = f"/offense/weapons[module_index={w['module_index']}]/{k}"
     cs = s["cap_state"]
     out["cap_state"] = cs if s["cap_stable"] else cs
     return out
@@ -115,7 +123,7 @@ def main(files):
         if name not in orc or "error" in orc[name]: print(f"{name}: SKIP oracle error {orc.get(name, {}).get('error')}"); continue
         st = json.loads(subprocess.run([BIN, "calc", str(rp)], capture_output=True, text=True).stdout)
         a, b = ours(st), pyfa(orc[name]["stats"])
-        bad = {k: (a[k], b[k]) for k in b if k != "cap_state" and not close(a[k], b[k])}
+        bad = {k: (a.get(k), b[k]) for k in b if k != "cap_state" and not close(a[k], b[k])}
         if b["cap_stable"] and a["cap_stable"] and not close(a["cap_state"], b["cap_state"]): bad["cap_state"] = (a["cap_state"], b["cap_state"])
         for k in list(bad):
             if k in KNOWN.get(name, {}): bad.pop(k)

@@ -48,9 +48,9 @@ fn matches_pyfa_oracle() {
             checked += 1;
             // "a+b" sums several pointers (Pyfa's drone stats include fighters)
             let got = if ptr.contains('+') {
-                Value::from(ptr.split('+').map(|p| st.pointer(p).and_then(|v| v.as_f64()).unwrap_or(0.0)).sum::<f64>())
+                Value::from(ptr.split('+').map(|p| lookup(&st, p).and_then(|v| v.as_f64()).unwrap_or(0.0)).sum::<f64>())
             } else {
-                st.pointer(ptr).cloned().unwrap_or(Value::Null)
+                lookup(&st, ptr).unwrap_or(Value::Null)
             };
             if !close(&got, want) {
                 failures.push(format!("{name} {ptr}: got {got} want {want}"));
@@ -89,4 +89,20 @@ fn eft_roundtrip_with_mutations() {
     let req2 = eft::parse(&ds, &out).unwrap();
     assert_eq!(serde_json::to_value(&req.modules).unwrap(), serde_json::to_value(&req2.modules).unwrap());
     assert_eq!(serde_json::to_value(&req.drones).unwrap(), serde_json::to_value(&req2.drones).unwrap());
+}
+
+/// JSON pointer with an optional array selector segment `name[key=value]` (e.g. `/offense/weapons[module_index=3]/tracking`).
+fn lookup(v: &Value, ptr: &str) -> Option<Value> {
+    let mut cur = v.clone();
+    for seg in ptr.split('/').skip(1) {
+        if let (Some(b), true) = (seg.find('['), seg.ends_with(']')) {
+            let (name, sel) = (&seg[..b], &seg[b + 1..seg.len() - 1]);
+            let (k, want) = sel.split_once('=')?;
+            let arr = cur.get(name)?.as_array()?.clone();
+            cur = arr.into_iter().find(|e| e.get(k).map(|x| x.to_string() == want).unwrap_or(false))?;
+        } else {
+            cur = cur.get(seg)?.clone();
+        }
+    }
+    Some(cur)
 }

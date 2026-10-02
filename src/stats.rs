@@ -329,9 +329,32 @@ impl<'a> Fit<'a> {
                 w["tracking"] = json!(g(i, "trackingSpeed"));
             } else if kind == "missile" {
                 if let Some(c) = self.items[i].charge {
+                    // Pyfa missileMaxRangeData: flight time + ship radius bonus, acceleration phase,
+                    // floor/ceil blend, FoF limit, centre-to-surface (eos/saveddata/module.py, LGPL)
                     let vel = g(c, "maxVelocity");
-                    let ft = g(c, "explosionDelay") / 1000.0;
-                    w["range_m"] = json!(vel * ft);
+                    if vel > 0.0 {
+                        let radius = g(ship, "radius");
+                        let ft = g(c, "explosionDelay") / 1000.0 + radius / vel;
+                        let ft = (ft * 1e9).round() / 1e9; // floatUnerr
+                        let accel_cap = g(c, "mass") * g(c, "agility") / 1e6;
+                        let range_at = |t: f64| {
+                            let acc = t.min(accel_cap);
+                            vel / 2.0 * acc + vel * (t - acc)
+                        };
+                        let (lt, ht) = (ft.floor(), ft.ceil());
+                        let (mut lr, mut hr) = (range_at(lt), range_at(ht));
+                        if self.has_effect_named(c, &["fofMissileLaunching"]) {
+                            let lim = g(c, "maxFOFTargetRange");
+                            if lim > 0.0 {
+                                lr = lr.min(lim);
+                                hr = hr.min(lim);
+                            }
+                        }
+                        lr = (lr - radius).max(0.0);
+                        hr = (hr - radius).max(0.0);
+                        let hc = ft - lt;
+                        w["range_m"] = json!(lr * (1.0 - hc) + hr * hc);
+                    }
                     w["explosion_radius"] = json!(g(c, "aoeCloudSize"));
                     w["explosion_velocity"] = json!(g(c, "aoeVelocity"));
                 }

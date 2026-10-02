@@ -96,3 +96,7 @@ Conventions matching Pyfa (deliberate): volley is spooled; local nosferatu is ca
   Paste); incoming remote shield/armor/hull reps add to `defense.tank.raw.*` with Pyfa's diminishing-returns formula;
   incoming neuts/nos/cap transfers are extra capacitor-simulation drains (Pyfa `addDrain`, incl. signature-resolution
   scaling and resistance). Non-breaking (additive). All oracle-verified.
+- v1.3 (2026-10-03): `offense.weapons[].range_m` for missiles now follows Pyfa `missileMaxRangeData` (ship-radius
+  flight-time bonus, acceleration, floor/ceil blend, FoF limit, centre-to-surface) instead of velocity × flight time.
+  Semantic change of one field (not a shape change). Turret optimal/falloff/tracking and missile range/explosion
+  radius/velocity are now oracle-verified per weapon (selector pointers `/offense/weapons[module_index=N]/field`).
