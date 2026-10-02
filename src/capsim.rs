@@ -54,15 +54,19 @@ impl Ord for Ev {
     fn cmp(&self, o: &Self) -> Ordering {
         // min-heap with Python-list ordering like Pyfa's heapq of
         // [t, duration, capNeed, shot, clipSize, reloadTime, isInjector], then insertion order
-        let f = |a: f64, b: f64| b.partial_cmp(&a).unwrap_or(Ordering::Equal);
+        #[inline(always)]
+        fn f(a: f64, b: f64) -> Ordering {
+            b.partial_cmp(&a).unwrap_or(Ordering::Equal)
+        }
+        // lazy tie-breaks: almost every comparison is decided by `t`
         f(self.t, o.t)
-            .then(f(self.duration, o.duration))
-            .then(f(self.cap_need, o.cap_need))
-            .then(o.shot.cmp(&self.shot))
-            .then(o.clip.cmp(&self.clip))
-            .then(f(self.reload, o.reload))
-            .then(o.inj.cmp(&self.inj))
-            .then(o.seq.cmp(&self.seq))
+            .then_with(|| f(self.duration, o.duration))
+            .then_with(|| f(self.cap_need, o.cap_need))
+            .then_with(|| o.shot.cmp(&self.shot))
+            .then_with(|| o.clip.cmp(&self.clip))
+            .then_with(|| f(self.reload, o.reload))
+            .then_with(|| o.inj.cmp(&self.inj))
+            .then_with(|| o.seq.cmp(&self.seq))
     }
 }
 

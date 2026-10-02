@@ -114,6 +114,58 @@ pub struct Fit<'a> {
     pub is_structure: bool,
     /// incoming remote reps / cap transfers / neuts from projected items, evaluated in stats
     pub proj_special: Vec<ProjSpecial>,
+    /// target index for location/group/skill filtered modifiers (built once the item set is final)
+    tindex: Option<TIndex>,
+}
+
+#[derive(Default)]
+struct TIndex {
+    ship_loc: Vec<usize>,
+    ship_group: FxHashMap<u32, Vec<usize>>,
+    ship_skill: FxHashMap<u32, Vec<usize>>,
+    owned_skill: FxHashMap<u32, Vec<usize>>,
+    char_loc: Vec<usize>,
+    char_group: FxHashMap<u32, Vec<usize>>,
+    char_skill: FxHashMap<u32, Vec<usize>>,
+}
+
+impl TIndex {
+    fn build(items: &[Item]) -> TIndex {
+        let mut t = TIndex::default();
+        for (i, it) in items.iter().enumerate() {
+            if it.loc == Loc::Ship {
+                t.ship_loc.push(i);
+                t.ship_group.entry(it.group).or_default().push(i);
+                for s in &it.req_skills {
+                    let v = t.ship_skill.entry(*s).or_default();
+                    if v.last() != Some(&i) {
+                        v.push(i);
+                    }
+                }
+            }
+            if it.owned {
+                for s in &it.req_skills {
+                    let v = t.owned_skill.entry(*s).or_default();
+                    if v.last() != Some(&i) {
+                        v.push(i);
+                    }
+                }
+            }
+            if it.loc == Loc::Char {
+                t.char_loc.push(i);
+                t.char_group.entry(it.group).or_default().push(i);
+            }
+            if (it.owned || it.loc == Loc::Char) && it.kind != Kind::Skill {
+                for s in &it.req_skills {
+                    let v = t.char_skill.entry(*s).or_default();
+                    if v.last() != Some(&i) {
+                        v.push(i);
+                    }
+                }
+            }
+        }
+        t
+    }
 }
 
 /// A projected effect that does not modify attributes but feeds tank or capacitor stats (Pyfa: fit._armorRr, addDrain).
@@ -154,6 +206,84 @@ fn default_fighter_abilities(ds: &Dataset, effects: &[(u32, bool)]) -> Vec<u32> 
         }
     }
     on
+}
+
+/// Skills required by any item of the request and the groups present (for skill pruning).
+fn fit_skill_context(ds: &Dataset, req: &FitRequest) -> (rustc_hash::FxHashSet<u32>, rustc_hash::FxHashSet<u32>) {
+    let mut need = rustc_hash::FxHashSet::default();
+    let mut groups = rustc_hash::FxHashSet::default();
+    let mut add = |tid: u32| {
+        if let Some(t) = ds.types.get(&tid) {
+            groups.insert(t.group);
+            for a in REQ_SKILL_ATTRS {
+                if let Some(v) = t.attr(a) {
+                    if v != 0.0 {
+                        need.insert(v as u32);
+                    }
+                }
+            }
+        }
+    };
+    add(req.ship.type_id);
+    if let Some(m) = req.ship.mode_type_id {
+        add(m);
+    }
+    for m in &req.modules {
+        add(m.type_id);
+        if let Some(c) = m.charge_type_id {
+            add(c);
+        }
+        if let Some(mu) = &m.mutation {
+            add(mu.base_type_id);
+        }
+    }
+    for d in &req.drones {
+        add(d.type_id);
+        if let Some(mu) = &d.mutation {
+            add(mu.base_type_id);
+        }
+    }
+    for f in &req.fighters {
+        add(f.type_id);
+    }
+    for i in &req.implants {
+        add(*i);
+    }
+    for b in &req.boosters {
+        add(b.type_id);
+    }
+    for c in &req.cargo {
+        add(c.type_id);
+    }
+    (need, groups)
+}
+
+/// Can any modifier of skill `s` reach an item of this fit? Conservative: unknown shapes count as relevant.
+fn skill_relevant(ds: &Dataset, s: u32, need: &rustc_hash::FxHashSet<u32>, groups: &rustc_hash::FxHashSet<u32>) -> bool {
+    if need.contains(&s) {
+        return true;
+    }
+    let Some(t) = ds.types.get(&s) else { return false };
+    for (eid, _) in &t.effects {
+        if *eid == EFFECT_SKILL_EFFECT {
+            continue;
+        }
+        let Some(e) = ds.effects.get(eid) else { continue };
+        if e.mods.is_empty() {
+            return true; // hand-written / special effect
+        }
+        for m in &e.mods {
+            let hit = match m.func {
+                Func::Item | Func::Location | Func::EffectStopper => true,
+                Func::LocationGroup => groups.contains(&m.extra) || ds.groups.get(&m.extra).map(|g| g.category == 16).unwrap_or(true),
+                Func::LocationRequiredSkill | Func::OwnerRequiredSkill => need.contains(&if m.extra == 0 { s } else { m.extra }),
+            };
+            if hit {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 fn state_ok(category: u8, state: State) -> bool {
@@ -284,7 +414,7 @@ impl<'a> Fit<'a> {
 
     /// Build the object graph for a request. Does not evaluate anything.
     pub fn build(ds: &'a Dataset, req: &FitRequest) -> Result<Fit<'a>, EngineError> {
-        let mut fit = Fit { ds, items: Vec::with_capacity(512), ship: 0, char: 0, warnings: Vec::new(), is_structure: false, proj_special: Vec::new() };
+        let mut fit = Fit { ds, items: Vec::with_capacity(512), ship: 0, char: 0, warnings: Vec::new(), is_structure: false, proj_special: Vec::new(), tindex: None };
         let ship = fit.new_item(req.ship.type_id, Kind::Ship, Loc::Ship, "/ship/type_id")?;
         fit.ship = ship;
         fit.is_structure = fit.items[ship].category == 65;
@@ -315,8 +445,13 @@ impl<'a> Fit<'a> {
         }
         let mut lv: Vec<(u32, u8)> = levels.into_iter().collect();
         lv.sort();
+        let (need, groups) = fit_skill_context(ds, req);
         for (s, l) in lv {
             if !ds.types.contains_key(&s) {
+                continue;
+            }
+            // perf: a skill whose modifiers can reach nothing in this fit is not instantiated (same results)
+            if !skill_relevant(ds, s, &need, &groups) {
                 continue;
             }
             let idx = fit.new_item(s, Kind::Skill, Loc::Char, "/character/skills")?;
@@ -521,6 +656,24 @@ impl<'a> Fit<'a> {
     }
 
     fn targets(&self, src: usize, func: Func, domain: Domain, extra: u32) -> Vec<usize> {
+        if let Some(t) = &self.tindex {
+            let get = |m: &FxHashMap<u32, Vec<usize>>| m.get(&extra).cloned().unwrap_or_default();
+            match (domain, func) {
+                (Domain::Ship, Func::Location) => return t.ship_loc.clone(),
+                (Domain::Ship, Func::LocationGroup) => return get(&t.ship_group),
+                (Domain::Ship, Func::LocationRequiredSkill) => return get(&t.ship_skill),
+                (Domain::Ship, Func::OwnerRequiredSkill) => return get(&t.owned_skill),
+                (Domain::Structure, _) if !self.is_structure => return Vec::new(),
+                (Domain::Structure, Func::Location) => return t.ship_loc.clone(),
+                (Domain::Structure, Func::LocationGroup) => return get(&t.ship_group),
+                (Domain::Structure, Func::LocationRequiredSkill) => return get(&t.ship_skill),
+                (Domain::Structure, Func::OwnerRequiredSkill) => return get(&t.owned_skill),
+                (Domain::Char, Func::Location) => return t.char_loc.clone(),
+                (Domain::Char, Func::LocationGroup) => return get(&t.char_group),
+                (Domain::Char, Func::LocationRequiredSkill | Func::OwnerRequiredSkill) => return get(&t.char_skill),
+                _ => {}
+            }
+        }
         let items = &self.items;
         let s = &items[src];
         let mut out = Vec::new();
@@ -610,6 +763,7 @@ impl<'a> Fit<'a> {
     }
 
     fn register_all(&mut self, req: &FitRequest) {
+        self.tindex = Some(TIndex::build(&self.items));
         let ds = self.ds;
         let n = self.items.len();
         let e_ab = ds.effect_id("moduleBonusAfterburner");
@@ -1244,6 +1398,7 @@ impl<'a> Fit<'a> {
 }
 
 fn set_type_attrs(item: &mut Item, t: &TypeInfo) {
+    item.attrs.reserve(t.attrs.len() + 6);
     for (a, v) in &t.attrs {
         item.attrs.insert(*a, Attr::new(*v));
     }

@@ -1,4 +1,7 @@
 //! eve-dogma CLI — stateless: JSON FitRequest in, JSON FitStats out.
+
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 use eve_dogma::{calc, eft, Dataset, FitRequest};
 use serde_json::{json, Value};
 use std::io::{BufRead, Read, Write};
