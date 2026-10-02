@@ -1,10 +1,10 @@
 //! Engine dataset (format v1, produced by `eve-sde-pipeline`).
 use rustc_hash::FxHashMap;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::Read;
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AttrInfo {
     pub id: u32,
     pub name: String,
@@ -19,7 +19,7 @@ pub struct AttrInfo {
     pub round2: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Func {
     Item,
     Location,
@@ -29,7 +29,7 @@ pub enum Func {
     EffectStopper,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Domain {
     Item,
     Ship,
@@ -41,7 +41,7 @@ pub enum Domain {
     None,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Modifier {
     pub func: Func,
     pub domain: Domain,
@@ -52,7 +52,7 @@ pub struct Modifier {
     pub extra: u32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct EffectInfo {
     pub id: u32,
     pub name: String,
@@ -69,7 +69,7 @@ pub struct EffectInfo {
     pub mods: Vec<Modifier>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TypeInfo {
     pub id: u32,
     pub name: String,
@@ -100,13 +100,13 @@ impl TypeInfo {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GroupInfo {
     pub name: String,
     pub category: u32,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DbuffInfo {
     pub name: Option<String>,
     pub aggregate: Option<String>,
@@ -117,19 +117,20 @@ pub struct DbuffInfo {
     pub location_skill: Vec<(u32, u32)>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MutaMapping {
     pub inputs: Vec<u32>,
     pub output: u32,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MutaInfo {
     pub attrs: HashMap<String, (f64, f64)>,
     pub mapping: Vec<MutaMapping>,
 }
 
 /// id-indexed table (attribute / effect ids are small and dense): O(1) lookups without hashing
+#[derive(Serialize, Deserialize)]
 pub struct Dense<T> {
     v: Vec<Option<T>>,
     n: usize,
@@ -169,6 +170,7 @@ impl<T> Dense<T> {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Dataset {
     pub build: u64,
     pub release_date: Option<String>,
@@ -191,7 +193,7 @@ pub struct Dataset {
     pub wk: WellKnown,
 }
 
-#[derive(Default)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct WellKnown {
     pub can_fit_group: Vec<u32>,
     pub can_fit_type: Vec<u32>,
@@ -319,9 +321,33 @@ fn domain_of(c: i32) -> Domain {
 }
 
 impl Dataset {
+    /// Load a dataset file. A binary cache of the parsed dataset (bincode) is kept in `$EVE_DOGMA_CACHE_DIR`
+    /// (default: `<tmp>/eve-dogma-cache`), keyed by the SHA-256 of the file bytes and by this executable's size and
+    /// mtime, so a rebuilt engine or a changed dataset never reads a stale cache. `EVE_DOGMA_NO_CACHE=1` disables it.
+    /// Results are identical with or without the cache (the cache holds the fully parsed `Dataset`).
     pub fn load_path(path: &str) -> Result<Dataset, String> {
         let bytes = std::fs::read(path).map_err(|e| format!("read {path}: {e}"))?;
-        Self::load_bytes(&bytes)
+        let cache = if std::env::var_os("EVE_DOGMA_NO_CACHE").is_some() { None } else { cache_file(&bytes) };
+        if let Some(cf) = &cache {
+            if let Ok(b) = std::fs::read(cf) {
+                if let Ok(ds) = bincode::deserialize::<Dataset>(&b) {
+                    return Ok(ds);
+                }
+            }
+        }
+        let ds = Self::load_bytes(&bytes)?;
+        if let Some(cf) = cache {
+            if let Ok(b) = bincode::serialize(&ds) {
+                if let Some(dir) = cf.parent() {
+                    let _ = std::fs::create_dir_all(dir);
+                }
+                let tmp = cf.with_extension(format!("tmp{}", std::process::id()));
+                if std::fs::write(&tmp, &b).is_ok() && std::fs::rename(&tmp, &cf).is_err() {
+                    let _ = std::fs::remove_file(&tmp);
+                }
+            }
+        }
+        Ok(ds)
     }
 
     pub fn load_bytes(bytes: &[u8]) -> Result<Dataset, String> {
@@ -504,6 +530,15 @@ impl Dataset {
 }
 
 // Small self-contained SHA-256 (avoids an extra dependency).
+fn cache_file(bytes: &[u8]) -> Option<std::path::PathBuf> {
+    let exe = std::env::current_exe().ok()?;
+    let m = std::fs::metadata(&exe).ok()?;
+    let mtime = m.modified().ok()?.duration_since(std::time::UNIX_EPOCH).ok()?.as_nanos();
+    let dir = std::env::var_os("EVE_DOGMA_CACHE_DIR").map(std::path::PathBuf::from).unwrap_or_else(|| std::env::temp_dir().join("eve-dogma-cache"));
+    let key = sha256_hex(format!("{}|{}|{}|{}", sha256_hex(bytes), m.len(), mtime, env!("CARGO_PKG_VERSION")).as_bytes());
+    Some(dir.join(format!("ds-{}.bin", &key[..32])))
+}
+
 pub fn sha256_hex(data: &[u8]) -> String {
     // sha2 uses the CPU's SHA extensions when present (runtime detection); the dataset hash is ~9 MB per load
     use sha2::{Digest, Sha256};

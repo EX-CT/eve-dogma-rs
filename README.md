@@ -28,6 +28,10 @@ cargo build --release
 ./target/release/eve-dogma bench req.json -n 2000
 ```
 
+Cold start: the parsed dataset is cached as bincode in `$EVE_DOGMA_CACHE_DIR` (default `<tmp>/eve-dogma-cache`),
+keyed by the dataset file's SHA-256 and the executable's size/mtime (never stale). A cached start loads the dataset
+in about 15 ms instead of about 100 ms; the output is byte-identical. Disable with `EVE_DOGMA_NO_CACHE=1`.
+
 Library: `eve_dogma::calc(&Dataset, &FitRequest) -> serde_json::Value` (pure; no I/O, clocks or globals).
 
 ## What is modelled
