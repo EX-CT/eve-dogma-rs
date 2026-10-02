@@ -46,7 +46,12 @@ fn matches_pyfa_oracle() {
         let st = calc(&ds, &req);
         for (ptr, want) in f["values"].as_object().unwrap() {
             checked += 1;
-            let got = st.pointer(ptr).cloned().unwrap_or(Value::Null);
+            // "a+b" sums several pointers (Pyfa's drone stats include fighters)
+            let got = if ptr.contains('+') {
+                Value::from(ptr.split('+').map(|p| st.pointer(p).and_then(|v| v.as_f64()).unwrap_or(0.0)).sum::<f64>())
+            } else {
+                st.pointer(ptr).cloned().unwrap_or(Value::Null)
+            };
             if !close(&got, want) {
                 failures.push(format!("{name} {ptr}: got {got} want {want}"));
             }
