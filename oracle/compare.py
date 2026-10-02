@@ -77,6 +77,8 @@ def close(a, b):
     if a is None or b is None: return a == b
     return math.isclose(float(a), float(b), rel_tol=1e-4, abs_tol=1e-3)
 
+PATCHES = {}
+
 def main(files):
     reqs = []
     for f in files:
@@ -86,12 +88,18 @@ def main(files):
             spec = json.loads(pathlib.Path(f).read_text())
             p = subprocess.run([BIN, "eft", str(ROOT / "tests" / spec["eft"]), "--skills", "5"], capture_output=True, text=True)
             if p.returncode: print(f"{name}: SKIP parse ({p.stderr.strip()})"); continue
-            req = json.loads(p.stdout); req.update(spec.get("patch", {}))
+            patch = spec.get("patch", {})
+            if spec.get("booster_efts"):
+                bfs = [json.loads(subprocess.run([BIN, "eft", str(ROOT / "tests" / e), "--skills", "5"], capture_output=True, text=True, check=True).stdout)
+                       for e in spec["booster_efts"]]
+                patch = {**patch, "fleet": {"buffs": [], "booster_fits": bfs}}
+            req = json.loads(p.stdout); req.update(patch)
+            PATCHES[name] = patch
         else:
             p = subprocess.run([BIN, "eft", f, "--skills", "5"], capture_output=True, text=True)
             if p.returncode: print(f"{name}: SKIP parse ({p.stderr.strip()})"); continue
             req = json.loads(p.stdout)
-        if any((req.get("fleet") or {}).values()) or any(p.get("kind") not in ("module", "drone") for p in req.get("projected", [])):
+        if (req.get("fleet") or {}).get("buffs") or any(p.get("kind") not in ("module", "drone") for p in req.get("projected", [])):
             print(f"{name}: SKIP (oracle lacks projection/fleet)"); continue
         rp = TMP / f"{name}.json"; rp.write_text(json.dumps(req)); reqs.append((name, rp, f))
     env = dict(os.environ, PYTHONPATH=f"{REF}/stubs", ORACLE_REPEAT="3")
@@ -108,7 +116,7 @@ def main(files):
         if b["cap_stable"] and a["cap_stable"] and not close(a["cap_state"], b["cap_state"]): bad["cap_state"] = (a["cap_state"], b["cap_state"])
         for k in list(bad):
             if k in KNOWN.get(name, {}): bad.pop(k)
-        expected[name] = {"eft": f"tests/fits/{name}.eft", **({"request_patch": json.loads(pathlib.Path(f).read_text()).get("patch", {}),
+        expected[name] = {"eft": f"tests/fits/{name}.eft", **({"request_patch": PATCHES[name],
                           "eft": "tests/" + json.loads(pathlib.Path(f).read_text())["eft"]} if str(f).endswith(".json") else {}),
                           "values": {PTR[k]: v for k, v in b.items() if k in PTR and k not in KNOWN.get(name, {})},
                           **({"cap_state_percent": b["cap_state"]} if b["cap_stable"] else {})}

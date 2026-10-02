@@ -80,6 +80,8 @@ def build(req):
     sh = item(req["ship"]["type_id"])
     ship = Citadel(sh) if sh.category.name == "Structure" else Ship(sh)
     fit = Fit(ship, "oracle")
+    from eos.const import ImplantLocation
+    fit.implantLocation = ImplantLocation.FIT
     fit.character = character(req)
     if req["ship"].get("mode_type_id"):
         fit.mode = ship.validateModeItem(eos.db.getItem(req["ship"]["mode_type_id"]))
@@ -125,6 +127,26 @@ def build(req):
             fit.projectedDrones.append(pd)
         else:
             raise KeyError("projected kind %s unsupported by oracle" % p.get("kind"))
+    for e in req.get("environment", {}).get("effect_type_ids", []):
+        bm = Module(item(e))
+        bm.state = FittingModuleState.ONLINE
+        fit.projectedModules.append(bm)
+    sec = (req.get("environment", {}).get("system_security") or "").lower()
+    if sec:
+        from eos.const import FitSystemSecurity
+        fit.systemSecurity = {"hisec": FitSystemSecurity.HISEC, "lowsec": FitSystemSecurity.LOWSEC,
+                              "nullsec": FitSystemSecurity.NULLSEC, "wspace": FitSystemSecurity.WSPACE}[sec]
+    boosters = req.get("fleet", {}).get("booster_fits", [])
+    if boosters:
+        eos.db.save(fit)
+        for b in boosters:
+            bf = build(b)
+            eos.db.save(bf)
+            fit.commandFitDict[bf.ID] = bf
+            eos.db.commit()
+            ci = bf.getCommandInfo(fit.ID)
+            ci.active = True
+        eos.db.commit()
     dp = req.get("damage_pattern") or {"em": 25, "thermal": 25, "kinetic": 25, "explosive": 25}
     fit.damagePattern = DamagePattern(dp["em"], dp["thermal"], dp["kinetic"], dp["explosive"])
     fit.factorReload = bool(req.get("options", {}).get("factor_reload", False))
@@ -164,6 +186,10 @@ def main():
         try:
             fit = build(req)
         except Exception as e:  # e.g. type missing from Pyfa's (older) eve.db
+            try:
+                eos.db.saveddata_session.rollback()
+            except Exception:
+                pass
             print(json.dumps({"file": os.path.basename(path), "error": repr(e)}))
             continue
         t0 = time.perf_counter()

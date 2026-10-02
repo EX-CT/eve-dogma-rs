@@ -720,16 +720,21 @@ impl<'a> Fit<'a> {
                 _ => e.max(b.value),
             };
         }
-        let mut ids: Vec<_> = agg.into_iter().collect();
-        ids.sort_by_key(|x| x.0);
-        for (id, value) in ids {
-            self.apply_buff(id, Src::Const(value), self.ship);
-        }
         // local command bursts (warfareBuffNID / warfareBuffNValue on active modules or their charges)
         let pairs: Vec<(u32, u32)> = (1..=4)
             .map(|k| (ds.attr_id(&format!("warfareBuff{k}ID")), ds.attr_id(&format!("warfareBuff{k}Value"))))
             .collect();
-        let explicit: Vec<u32> = req.fleet.buffs.iter().map(|b| b.buff_id).collect();
+        // Pyfa keeps, per buff id, the single strongest (by |value|) source among the fit's own bursts and
+        // the fleet booster fits; explicit `fleet.buffs` override both.
+        let mut best: FxHashMap<u32, (f64, Src)> = FxHashMap::default();
+        let offer = |best: &mut FxHashMap<u32, (f64, Src)>, id: u32, v: f64, src: Src| {
+            match best.get(&id) {
+                Some((old, _)) if old.abs() >= v.abs() => {}
+                _ => {
+                    best.insert(id, (v, src));
+                }
+            }
+        };
         let n = self.items.len();
         for i in 0..n {
             if self.items[i].kind != Kind::Module || self.items[i].state < State::Active {
@@ -737,15 +742,50 @@ impl<'a> Fit<'a> {
             }
             // chargeBonusWarfareCharge PostAssigns warfareBuffNID onto the module and PostMuls the module's
             // warfareBuffNValue by the charge multiplier, so both are read (modified) from the module.
-            let src_item = i;
             for (ida, vala) in &pairs {
                 let id = if self.has(i, *ida) { self.get(i, *ida) as u32 } else { 0 };
-                if id == 0 || explicit.contains(&id) {
+                if id == 0 || agg.contains_key(&id) {
                     continue;
                 }
-                self.apply_buff(id, Src::Attr { item: src_item, attr: *vala }, i);
+                let v = self.get(i, *vala);
+                offer(&mut best, id, v, Src::Attr { item: i, attr: *vala });
             }
         }
+        for (k, bf) in req.fleet.booster_fits.iter().enumerate() {
+            let mut breq = bf.clone();
+            breq.fleet.booster_fits.clear();
+            match Fit::build(ds, &breq) {
+                Ok(b) => {
+                    for i in 0..b.items.len() {
+                        if b.items[i].kind != Kind::Module || b.items[i].state < State::Active {
+                            continue;
+                        }
+                        for (ida, vala) in &pairs {
+                            let id = if b.has(i, *ida) { b.get(i, *ida) as u32 } else { 0 };
+                            if id == 0 || agg.contains_key(&id) {
+                                continue;
+                            }
+                            let v = b.get(i, *vala);
+                            offer(&mut best, id, v, Src::Const(v));
+                        }
+                    }
+                }
+                Err(e) => self.warnings.push(format!("fleet.booster_fits[{k}]: {e:?}")),
+            }
+        }
+        for (id, value) in agg.iter() {
+            best.insert(*id, (*value, Src::Const(*value)));
+        }
+        let mut ids: Vec<_> = best.into_iter().collect();
+        ids.sort_by_key(|x| x.0);
+        for (id, (_, src)) in ids {
+            let target = match src {
+                Src::Attr { item, .. } => item,
+                _ => self.ship,
+            };
+            self.apply_buff(id, src, target);
+        }
+        self.clear_cache();
     }
 
     fn clear_cache(&self) {

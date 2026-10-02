@@ -46,12 +46,12 @@ Library (Rust): `eve_dogma::calc(&Dataset, &FitRequest) -> serde_json::Value`, `
   "cargo":    [{"type_id": 32014, "quantity": 10}],
   "fleet": {
     "buffs": [{"buff_id": 10, "value": 25.0}],               // explicit warfare buffs (dbuff id + value)
-    "booster_fits": [ /* FitRequest of command ships */ ]
+    "booster_fits": [ /* FitRequest of command ships; strongest value per buff id wins (Pyfa); explicit `buffs` override */ ]
   },
   "projected": [                                             // effects applied TO this fit
     {"kind": "module", "module": {"type_id": 527}, "amount": 2, "distance_m": 5000},
     {"kind": "drone",  "drone":  {"type_id": 23536, "quantity": 2}, "amount": 1, "distance_m": 1000},
-    {"kind": "fit",    "fit": { /* FitRequest */ }, "amount": 1, "distance_m": 10000}
+    {"kind": "fit",    "fit": { /* FitRequest */  /* NOT YET IMPLEMENTED: emits a warning, no effect */ }, "amount": 1, "distance_m": 10000}
   ],
   "environment": {"effect_type_ids": [30844], "system_security": "nullsec"},  // hisec | lowsec | nullsec (default) | wspace
   "damage_pattern": {"em": 25, "thermal": 25, "kinetic": 25, "explosive": 25},  // incoming, for EHP/RAH (default uniform)
@@ -88,3 +88,7 @@ Conventions matching Pyfa (deliberate): volley is spooled; local nosferatu is ca
 
 ## Changelog
 - v1 (2026-10-03): initial contract.
+
+## Changelog
+- v1.1 (2026-10-03): `fleet.booster_fits` implemented (oracle-verified). `projected[kind=fit]` and charges on
+  projected modules are still unimplemented (warning only). Non-breaking.
