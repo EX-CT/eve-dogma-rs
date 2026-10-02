@@ -950,7 +950,7 @@ impl<'a> Fit<'a> {
                 }
             });
             let target_offense_ok = self.items[ship].attrs.get(&ds.attr_id("disallowOffensiveModifiers")).map(|a| a.base == 0.0).unwrap_or(true);
-            let mut push = |fit: &mut Fit, target_attr: u32, src_attr: u32, op: i32| {
+            let push = |fit: &mut Fit, target_attr: u32, src_attr: u32, op: i32| {
                 let mul = op == 4 || op == 0;
                 fit.push_mod(
                     ship,

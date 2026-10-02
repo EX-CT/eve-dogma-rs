@@ -46,19 +46,56 @@ fn read_input(file: Option<&String>) -> String {
     s
 }
 
-fn search(ds: &Dataset, q: &str, limit: usize) -> Value {
-    let ql = q.to_lowercase();
-    let mut hits: Vec<(&u32, &eve_dogma::data::TypeInfo)> = ds
+/// Interim search spec (contract v1.4.1): published types of the scored categories, rank exact > prefix > substring
+/// (case-insensitive, English or Chinese name), ties by type id ascending; default limit 20.
+const SEARCH_CATEGORIES: [(&str, u32); 8] =
+    [("ship", 6), ("module", 7), ("charge", 8), ("drone", 18), ("fighter", 87), ("implant", 20), ("subsystem", 32), ("skill", 16)];
+
+fn search_kind(ds: &Dataset, t: &eve_dogma::data::TypeInfo) -> Option<&'static str> {
+    if t.category == 20 {
+        let booster = ds.groups.get(&t.group).map(|g| g.name.contains("Booster")).unwrap_or(false);
+        return Some(if booster { "booster" } else { "implant" });
+    }
+    SEARCH_CATEGORIES.iter().find(|(_, c)| *c == t.category).map(|(n, _)| *n)
+}
+
+fn search(ds: &Dataset, q: &str, limit: usize, kinds: Option<Vec<String>>) -> Value {
+    let ql = q.trim().to_lowercase();
+    let rank = |id: &u32, t: &eve_dogma::data::TypeInfo| -> Option<u8> {
+        let en = t.name.to_lowercase();
+        let zh = ds.names_zh.get(id).map(|z| z.to_lowercase());
+        let zh = zh.as_deref().unwrap_or("");
+        if en == ql || (!zh.is_empty() && zh == ql) {
+            Some(0)
+        } else if en.starts_with(&ql) || (!zh.is_empty() && zh.starts_with(&ql)) {
+            Some(1)
+        } else if en.contains(&ql) || (!zh.is_empty() && zh.contains(&ql)) {
+            Some(2)
+        } else {
+            None
+        }
+    };
+    let mut hits: Vec<(u8, u32, &'static str, &eve_dogma::data::TypeInfo)> = ds
         .types
         .iter()
-        .filter(|(id, t)| t.published && (t.name.to_lowercase().contains(&ql) || ds.names_zh.get(id).map(|z| z.contains(q)).unwrap_or(false)))
+        .filter(|(_, t)| t.published)
+        .filter_map(|(id, t)| {
+            let k = search_kind(ds, t)?;
+            if let Some(ks) = &kinds {
+                if !ks.iter().any(|x| x == k) {
+                    return None;
+                }
+            }
+            Some((rank(id, t)?, *id, k, t))
+        })
         .collect();
-    hits.sort_by_key(|(_, t)| (!t.name.to_lowercase().starts_with(&ql), t.name.len(), t.name.clone()));
+    hits.sort_by_key(|h| (h.0, h.1));
     Value::Array(
         hits.into_iter()
             .take(limit)
-            .map(|(id, t)| {
-                json!({"type_id": id, "name": t.name, "name_zh": ds.names_zh.get(id), "group": ds.groups.get(&t.group).map(|g| g.name.clone()), "category_id": t.category,
+            .map(|(r, id, k, t)| {
+                json!({"type_id": id, "name": t.name, "name_zh": ds.names_zh.get(&id), "kind": k, "match": (["exact", "prefix", "substring"][r as usize]),
+                       "group": ds.groups.get(&t.group).map(|g| g.name.clone()), "category_id": t.category,
                        "meta_level": t.meta_level, "slot": eve_dogma::engine::infer_slot(ds, t)})
             })
             .collect(),
@@ -104,7 +141,12 @@ fn rpc(ds: &Dataset, line: &str) -> Value {
             Ok(r) => json!({"text": eft::export(ds, &r, p.get("name").and_then(|n| n.as_str()).unwrap_or("EXCT fit"))}),
             Err(e) => json!({"error": {"code": "BAD_REQUEST", "message": e.to_string()}}),
         },
-        "search" => search(ds, p.get("query").and_then(|q| q.as_str()).unwrap_or(""), p.get("limit").and_then(|l| l.as_u64()).unwrap_or(20) as usize),
+        "search" => search(
+            ds,
+            p.get("query").and_then(|q| q.as_str()).unwrap_or(""),
+            p.get("limit").and_then(|l| l.as_u64()).unwrap_or(20) as usize,
+            p.get("kinds").and_then(|k| k.as_array()).map(|a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect()),
+        ),
         "type" => type_info(ds, &p.get("id").map(|x| x.to_string().trim_matches('"').to_string()).unwrap_or_default()),
         "meta" => meta(ds),
         m => json!({"error": {"code": "UNKNOWN_METHOD", "message": m}}),
@@ -182,7 +224,7 @@ fn main() {
         }
         "search" => {
             let ds = load(dataset);
-            writeln!(out, "{}", serde_json::to_string_pretty(&search(&ds, &args[1..].join(" "), 25)).unwrap()).unwrap();
+            writeln!(out, "{}", serde_json::to_string_pretty(&search(&ds, &args[1..].join(" "), 20, None)).unwrap()).unwrap();
         }
         "type" => {
             let ds = load(dataset);

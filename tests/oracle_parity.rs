@@ -88,7 +88,13 @@ fn eft_roundtrip_with_mutations() {
     let out = eft::export(&ds, &req, "Mutations");
     let req2 = eft::parse(&ds, &out).unwrap();
     assert_eq!(serde_json::to_value(&req.modules).unwrap(), serde_json::to_value(&req2.modules).unwrap());
-    assert_eq!(serde_json::to_value(&req.drones).unwrap(), serde_json::to_value(&req2.drones).unwrap());
+    // Pyfa's exporter sorts drones (market group, mutated last), so compare as multisets
+    let key = |d: &Vec<eve_dogma::request::DroneReq>| {
+        let mut v: Vec<String> = d.iter().map(|x| serde_json::to_string(x).unwrap()).collect();
+        v.sort();
+        v
+    };
+    assert_eq!(key(&req.drones), key(&req2.drones));
 }
 
 /// JSON pointer with an optional array selector segment `name[key=value]` (e.g. `/offense/weapons[module_index=3]/tracking`).

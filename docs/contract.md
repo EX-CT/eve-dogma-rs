@@ -1,4 +1,4 @@
-# eve-dogma request/response contract (v1)
+# eve-dogma request/response contract (v1, revision 1.4.1)
 
 Stateless: **one JSON `FitRequest` in → one JSON `FitStats` out.** No hidden state, no clocks, no network.
 The same request with the same dataset must give byte-identical output. Unknown request fields are ignored.
@@ -8,9 +8,9 @@ Breaking changes bump `schema_version` and are listed in the changelog at the en
 
 | Mode | Command | I/O |
 |---|---|---|
-| single | `eve-dogma calc [FILE]` | FitRequest JSON on stdin (or FILE) → FitStats JSON on stdout, exit 0 |
-| batch | `eve-dogma batch` | one FitRequest per line (JSONL) on stdin → one FitStats per line, same order |
-| rpc | `eve-dogma serve-stdio` | JSONL `{"id","method","params"}` → `{"id","result"}`; methods `calc`, `eft_parse` (`{text}`), `eft_export` (`{fit,name?}`), `search` (`{query,limit?}`), `type` (`{id}` id or name), `meta` |
+| single | `eve-dogma calc [FILE]` | FitRequest JSON on stdin (or FILE) → FitStats JSON on stdout, exit 0. On a calc error the `{"error":…}` JSON is still written to stdout and the exit code is 2 |
+| batch | `eve-dogma batch` | one FitRequest per line (JSONL) on stdin → one FitStats per line, same order; a failing line yields its `{"error":…}` line in place, exit 0 |
+| rpc | `eve-dogma serve-stdio` | JSONL `{"id","method","params"}` → `{"id","result"}`; methods `calc`, `eft_parse` (`{text}`), `eft_export` (`{fit,name?}`), `search` (`{query,limit?,kinds?}`), `type` (`{id}` id or name), `meta` |
 | helpers | `eft FILE [--calc] [--skills N]`, `search Q`, `type ID|NAME`, `meta`, `bench FILE -n N` | |
 
 Dataset: `--dataset PATH`, else `$EVE_DOGMA_DATASET`, else `./dataset.json.gz`
@@ -19,6 +19,7 @@ Dataset: `--dataset PATH`, else `$EVE_DOGMA_DATASET`, else `./dataset.json.gz`
 Errors are returned as JSON, never as a panic: `{"error":{"code","message","path"}}`
 (codes: `BAD_JSON`, `BAD_REQUEST`, `UNKNOWN_TYPE`, `EFT_PARSE`, `UNKNOWN_METHOD`). Fitting problems are *not*
 errors; they are listed in `violations`.
+Exit codes: 0 ok · 2 calc/input error (JSON error on stdout for `calc`) · 3 dataset cannot be loaded.
 
 Library (Rust): `eve_dogma::calc(&Dataset, &FitRequest) -> serde_json::Value`, `calc_json(&Dataset, &str) -> String`.
 
@@ -66,6 +67,35 @@ Library (Rust): `eve_dogma::calc(&Dataset, &FitRequest) -> serde_json::Value`, `
 }
 ```
 
+`options` omitted entirely is the same as `"options": {}`: every option takes its default, so **`validate` defaults to
+true** either way (violations are reported unless `validate: false` is given).
+
+## Search (`search` RPC / CLI), interim
+
+Not part of dogma scoring; the formal spec is deferred to the MCP round. Interim behaviour:
+- params `{query, limit?, kinds?}`; `limit` defaults to **20**; `kinds` optionally restricts the categories below.
+- Only published types of these kinds: `ship` (cat 6), `module` (7), `charge` (8), `drone` (18), `fighter` (87),
+  `implant` / `booster` (20; booster = group name contains "Booster"), `subsystem` (32), `skill` (16).
+- Case-insensitive match on the English or Chinese name. Ranking: **exact > prefix > substring**, ties by **typeID
+  ascending**. Each result: `{type_id, name, name_zh, group, category_id, kind, slot, meta_level, match: "exact"|"prefix"|"substring"}`.
+
+## EFT export (`eft_export`)
+
+Byte-identical to Pyfa's `service/port/eft.py exportEft` with all options on (implants, boosters, cargo, loaded
+charges, mutations), for the fit as Pyfa's GUI holds it (after `fill()`):
+- `[Ship, Name]`, a blank line, then sections separated by **two** blank lines; no trailing newline.
+- Modules: racks in the order low, med, high, rig, subsystem, service, separated by one blank line; within a rack the
+  request order, then `[Empty Low|Med|High|Rig|Subsystem|Service slot]` for every free slot (totals after
+  modifiers); `Module, Charge`, then ` /offline`, then ` [N]` for mutated items (base item name is written).
+- Drones (`Name xN`, Pyfa DRONE_ORDER by market group, unmutated before mutated, then name) and fighters (`Name xN`,
+  light/heavy/support order, N capped at squadron size) form one section, separated by one blank line.
+- Implants (by implant slot) and boosters (by booster slot) form one section, separated by one blank line.
+- Cargo `Name xN` sorted by (category name, group name, type name).
+- Mutation details: `[N] Base`, `  Mutaplasmid`, `  attr value, …` (attribute names sorted, Pyfa `floatUnerr`
+  values in Python float repr, e.g. `30.0`).
+- **T3D mode:** Pyfa's exporter writes no mode line, so neither do we (`eft_parse` still accepts a mode line, and a
+  missing mode defaults to the first mode). Verified against Pyfa on all bench fits (tests/eft_export_parity.rs).
+
 ## FitStats (top level)
 
 `meta` {engine, schema_version, sde_build, dataset_sha256} · `ship` {type_id, name, group} ·
@@ -88,8 +118,6 @@ Conventions matching Pyfa (deliberate): volley is spooled; local nosferatu is ca
 
 ## Changelog
 - v1 (2026-10-03): initial contract.
-
-## Changelog
 - v1.1 (2026-10-03): `fleet.booster_fits` implemented (oracle-verified). `projected[kind=fit]` and charges on
   projected modules are still unimplemented (warning only). Non-breaking.
 - v1.2 (2026-10-03): `projected[kind=fit]` implemented; charges on projected modules applied (scripts, Nanite Repair
@@ -110,3 +138,10 @@ Conventions matching Pyfa (deliberate): volley is spooled; local nosferatu is ca
   `offense.drones[]` gains optimal_m, falloff_m, tracking, max_velocity, signature_radius; `offense.fighters[]` gains
   max_velocity, signature_radius; local fighter MWD / afterburner / evasive maneuvers abilities are applied.
   Booster side effects (`boosters[].side_effects`) oracle-verified. Additive.
+- v1.4.1 (2026-10-03 05:30 CST, coordinator rulings; revision label as issued, applies on top of v1.5):
+  (1) a calc error exits 2 and still prints the `{"error":…}` JSON on stdout (text fixed; behaviour unchanged);
+  (2) `options` missing entirely → `validate` defaults to true (engine fixed: it used to default to false);
+  (3) search is out of dogma scope; interim spec above (limit 20, kinds, exact > prefix > substring, typeID ties);
+  (4) `eft_export` matches Pyfa's exporter byte for byte (section/blank-line layout, empty-slot lines, ` /offline`
+  lowercase, drone/fighter/implant/booster/cargo ordering, mutation block; no T3D mode line because Pyfa writes none);
+  (5) duplicate changelog heading removed. Engine speed work (skill pruning, modifier target index) changes no output.

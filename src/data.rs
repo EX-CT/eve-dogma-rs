@@ -130,6 +130,8 @@ pub struct Dataset {
     pub sha256: String,
     pub types: FxHashMap<u32, TypeInfo>,
     pub groups: FxHashMap<u32, GroupInfo>,
+    /// category id -> English name
+    pub categories: FxHashMap<u32, String>,
     pub attrs: FxHashMap<u32, AttrInfo>,
     pub effects: FxHashMap<u32, EffectInfo>,
     pub dbuffs: FxHashMap<u32, DbuffInfo>,
@@ -149,6 +151,8 @@ struct RawDs {
     format_version: u32,
     sde: RawSde,
     groups: HashMap<String, RawGroup>,
+    #[serde(default)]
+    categories: HashMap<String, RawCategory>,
     attributes: HashMap<String, RawAttr>,
     effects: HashMap<String, RawEffect>,
     types: HashMap<String, RawType>,
@@ -163,6 +167,11 @@ struct RawDs {
 struct RawSde {
     build: u64,
     release_date: Option<String>,
+}
+#[derive(Deserialize)]
+struct RawCategory {
+    #[serde(default)]
+    name: Option<String>,
 }
 #[derive(Deserialize)]
 struct RawGroup {
@@ -333,6 +342,7 @@ impl Dataset {
         for (k, g) in raw.groups {
             groups.insert(k.parse().unwrap_or(0), GroupInfo { name: g.name.unwrap_or_default(), category: g.category });
         }
+        let categories = raw.categories.into_iter().map(|(k, c)| (k.parse().unwrap_or(0), c.name.unwrap_or_default())).collect();
         let mut types = FxHashMap::default();
         let mut type_by_name = FxHashMap::default();
         let mut skills = Vec::new();
@@ -382,6 +392,7 @@ impl Dataset {
             sha256,
             types,
             groups,
+            categories,
             attrs,
             effects,
             dbuffs,
