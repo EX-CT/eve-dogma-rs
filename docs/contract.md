@@ -1,4 +1,4 @@
-# eve-dogma request/response contract (v1, revision 1.4.1)
+# eve-dogma request/response contract (v1, revision 1.4.2)
 
 Stateless: **one JSON `FitRequest` in → one JSON `FitStats` out.** No hidden state, no clocks, no network.
 The same request with the same dataset must give byte-identical output. Unknown request fields are ignored.
@@ -69,6 +69,45 @@ Library (Rust): `eve_dogma::calc(&Dataset, &FitRequest) -> serde_json::Value`, `
 
 `options` omitted entirely is the same as `"options": {}`: every option takes its default, so **`validate` defaults to
 true** either way (violations are reported unless `validate: false` is given).
+
+## Semantics (precise definitions, revision 1.4.2)
+
+**`capacitor.use_gj_s` / `injected_gj_s` / `delta_gj_s`** (GJ/s, averages, not the simulation):
+- `use_gj_s` = Σ over the fit's own modules with state ≥ active and capacitorNeed > 0 of
+  `capacitorNeed / avg_cycle_s`, plus Σ over incoming drains (projected neutralizers and enemy nosferatu, every copy)
+  of `need / duration_s`.
+  - `avg_cycle_s` = (cycle time + reactivation delay) / 1000; with `options.factor_reload` and a finite clip, Pyfa's
+    average including one reload per clip: `((cycle + reactivation) × (shots − 1) + (cycle + reload)) / shots`
+    (only when the reload is longer than the reactivation delay).
+  - Incoming `need` = the source's modified amount × range factor × the target's resistance attribute (if any) ×
+    `min(1, signatureRadius / energyNeutralizerSignatureResolution)` when the source has a signature resolution;
+    `duration_s` = trunc(duration ms) / 1000.
+- `injected_gj_s` = cap *gained* per second, as a positive number:
+  - capacitor boosters: `capacitorBonus` of the loaded charge / avg cycle, always reload-inclusive (Pyfa `forceReload`);
+  - the fit's own nosferatu: `powerTransferAmount` / avg cycle, counted as income unless `options.nos_no_target_cap`;
+  - incoming remote capacitor transmitters: their amount / duration.
+- `delta_gj_s = peak_recharge_gj_s + injected_gj_s − use_gj_s`. `stable` / `stable_percent` / `depletes_in_s` come
+  from the cap simulation, not from these averages. Drones and fighters never use cap.
+
+**`projected[].amount`** = number of identical, independent sources (default 1):
+- `kind: module` / `fighter`: `amount` copies of the module / squadron. For `drone`, there are `amount × quantity` drones.
+- `kind: fit`: the source fit is computed **once on its own** (its skills, implants, boosters, fleet; its own
+  `projected` list is ignored). Then each of the following is projected `amount` times, all at the entry's `distance_m`:
+  - every module with state ≥ active,
+  - every active drone (its `active` count),
+  - every active fighter squadron.
+
+  Each projected item is frozen with the source-modified attribute values.
+- Every copy is a separate modifier: stacking penalties apply across all copies and sources. Remote reps, drains and
+  ECM strengths are added per copy. This matches Pyfa's projected amount for modules, drones and fits.
+
+**Fleet buffs** (`fleet.buffs` vs `fleet.booster_fits` vs the fit's own command bursts):
+- For each warfare buff id, the candidates are the fit's own active bursts and every active burst on each booster
+  fit. Booster fits are computed on their own, without their own booster fits. The single strongest candidate by
+  |value| applies (Pyfa).
+- **An explicit `fleet.buffs` entry overrides both completely for its buff id.** Bursts and booster fits are ignored
+  for that id. Several explicit entries with the same id aggregate to one value: the minimum for buffs whose aggregate
+  mode is Minimum, the maximum otherwise. Ids without an explicit entry keep the strongest-candidate rule.
 
 ## Search (`search` RPC / CLI), interim
 
@@ -145,3 +184,9 @@ Conventions matching Pyfa (deliberate): volley is spooled; local nosferatu is ca
   (4) `eft_export` matches Pyfa's exporter byte for byte (section/blank-line layout, empty-slot lines, ` /offline`
   lowercase, drone/fighter/implant/booster/cargo ordering, mutation block; no T3D mode line because Pyfa writes none);
   (5) duplicate changelog heading removed. Engine speed work (skill pruning, modifier target index) changes no output.
+- v1.4.2 (2026-10-03 05:45 CST): precise definitions of `capacitor.use_gj_s` / `injected_gj_s` / `delta_gj_s`,
+  `projected[].amount` (incl. projected fits: computed once, every active module/drone/fighter projected `amount` times,
+  each copy a separate penalised modifier), and fleet-buff precedence (explicit `fleet.buffs` override own bursts and
+  booster fits per buff id), see "Semantics". Engine: projected Tracking Disruptors and Guidance Disruptors (Pyfa
+  Effect6424 / Effect6423: target's Gunnery modules / Missile Launcher Operation charges, range factor, resistance) are
+  now applied (they were a warning before). Oracle-verified, incl. new amount>1 projected-fit cases.

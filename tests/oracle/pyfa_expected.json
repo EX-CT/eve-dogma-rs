@@ -9379,6 +9379,130 @@
     "/targeting/sensor_strength": 28.799999999999997
    }
   },
+  "exct_crucifier": {
+   "eft": "tests/fits/exct_crucifier.eft",
+   "values": {
+    "/capacitor/capacity": 412.5,
+    "/capacitor/recharge_time_s": 135.0,
+    "/capacitor/stable": false,
+    "/defense/ehp/armor": 871.4596949891068,
+    "/defense/ehp/hull": 1088.3084577114428,
+    "/defense/ehp/shield": 492.61083743842363,
+    "/defense/hp/armor": 500.0,
+    "/defense/hp/hull": 437.5,
+    "/defense/hp/shield": 312.5,
+    "/defense/resonance/armor/em": 0.425,
+    "/defense/resonance/armor/explosive": 0.68,
+    "/defense/resonance/armor/kinetic": 0.6375,
+    "/defense/resonance/armor/thermal": 0.5525,
+    "/defense/resonance/hull/em": 0.402,
+    "/defense/resonance/hull/explosive": 0.402,
+    "/defense/resonance/hull/kinetic": 0.402,
+    "/defense/resonance/hull/thermal": 0.402,
+    "/defense/resonance/shield/em": 0.875,
+    "/defense/resonance/shield/explosive": 0.4375,
+    "/defense/resonance/shield/kinetic": 0.525,
+    "/defense/resonance/shield/thermal": 0.7000000000000001,
+    "/defense/tank/raw/armor_repair": 20.444444444444443,
+    "/defense/tank/raw/hull_repair": 0,
+    "/defense/tank/raw/passive_shield": 1.6666666666666665,
+    "/defense/tank/raw/shield_repair": 0,
+    "/defense/tank/sustained/armor_repair": 0.0,
+    "/defense/tank/sustained/hull_repair": 0,
+    "/defense/tank/sustained/shield_repair": 0,
+    "/drones/control_range_m": 60000.0,
+    "/navigation/align_time_s": 4.902761706064799,
+    "/navigation/mass": 1564000.0,
+    "/navigation/max_velocity": 1145.5702525575448,
+    "/navigation/signature_radius": 38.0,
+    "/navigation/warp_scramble_status": 0.0,
+    "/navigation/warp_speed_au_s": 5.0,
+    "/offense/total/drone_dps+/offense/total/fighter_dps": 0,
+    "/offense/total/drone_volley+/offense/total/fighter_volley": 0,
+    "/offense/total/weapon_dps": 33.413789062499994,
+    "/offense/total/weapon_volley": 48.11585625000001,
+    "/offense/weapons[module_index=7]/falloff_m": 1875.0,
+    "/offense/weapons[module_index=7]/optimal_m": 750.0,
+    "/offense/weapons[module_index=7]/tracking": 547.5,
+    "/resources/calibration/used": 300.0,
+    "/resources/cpu/total": 293.75,
+    "/resources/cpu/used": 211.0,
+    "/resources/drone_bandwidth/used": 0,
+    "/resources/power/total": 44.92,
+    "/resources/power/used": 34.6,
+    "/resources/slots/high/total": 2.0,
+    "/resources/slots/low/total": 3.0,
+    "/resources/slots/mid/total": 4.0,
+    "/targeting/jam_chance_percent": 0,
+    "/targeting/max_range_m": 80000.0,
+    "/targeting/max_targets": 6,
+    "/targeting/scan_resolution": 675.0,
+    "/targeting/sensor_strength": 16.8
+   }
+  },
+  "exct_curse": {
+   "eft": "tests/fits/exct_curse.eft",
+   "values": {
+    "/capacitor/capacity": 1837.5,
+    "/capacitor/recharge_time_s": 167.79,
+    "/capacitor/stable": false,
+    "/defense/ehp/armor": 11649.741329756658,
+    "/defense/ehp/hull": 3342.6616915422883,
+    "/defense/ehp/shield": 2926.6817838246407,
+    "/defense/hp/armor": 3562.5,
+    "/defense/hp/hull": 1343.75,
+    "/defense/hp/shield": 1512.5,
+    "/defense/resonance/armor/em": 0.31875,
+    "/defense/resonance/armor/explosive": 0.19125,
+    "/defense/resonance/armor/kinetic": 0.298828125,
+    "/defense/resonance/armor/thermal": 0.414375,
+    "/defense/resonance/hull/em": 0.402,
+    "/defense/resonance/hull/explosive": 0.402,
+    "/defense/resonance/hull/kinetic": 0.402,
+    "/defense/resonance/hull/thermal": 0.402,
+    "/defense/resonance/shield/em": 0.875,
+    "/defense/resonance/shield/explosive": 0.1640625,
+    "/defense/resonance/shield/kinetic": 0.328125,
+    "/defense/resonance/shield/thermal": 0.7000000000000001,
+    "/defense/tank/raw/armor_repair": 40.888888888888886,
+    "/defense/tank/raw/hull_repair": 0,
+    "/defense/tank/raw/passive_shield": 4.033333333333333,
+    "/defense/tank/raw/shield_repair": 0,
+    "/defense/tank/sustained/armor_repair": 39.85433667083855,
+    "/defense/tank/sustained/hull_repair": 0,
+    "/defense/tank/sustained/shield_repair": 0,
+    "/drones/control_range_m": 60000.0,
+    "/navigation/align_time_s": 9.739746127387892,
+    "/navigation/mass": 17063125.0,
+    "/navigation/max_velocity": 636.3871744624739,
+    "/navigation/signature_radius": 145.0,
+    "/navigation/warp_scramble_status": 0.0,
+    "/navigation/warp_speed_au_s": 4.0,
+    "/offense/drones[drone_index=0]/falloff_m": 2000.0,
+    "/offense/drones[drone_index=0]/max_velocity": 4200.0,
+    "/offense/drones[drone_index=0]/optimal_m": 2625.0,
+    "/offense/drones[drone_index=0]/signature_radius": 25.0,
+    "/offense/drones[drone_index=0]/tracking": 2.178,
+    "/offense/total/drone_dps+/offense/total/fighter_dps": 148.49999999999997,
+    "/offense/total/drone_volley+/offense/total/fighter_volley": 593.9999999999999,
+    "/offense/total/weapon_dps": 0.0,
+    "/offense/total/weapon_volley": 0.0,
+    "/resources/calibration/used": 200.0,
+    "/resources/cpu/total": 475.0,
+    "/resources/cpu/used": 314.25,
+    "/resources/drone_bandwidth/used": 25.0,
+    "/resources/power/total": 1237.5,
+    "/resources/power/used": 833.0,
+    "/resources/slots/high/total": 5.0,
+    "/resources/slots/low/total": 4.0,
+    "/resources/slots/mid/total": 6.0,
+    "/targeting/jam_chance_percent": 0,
+    "/targeting/max_range_m": 138125.0,
+    "/targeting/max_targets": 10,
+    "/targeting/scan_resolution": 351.25,
+    "/targeting/sensor_strength": 33.6
+   }
+  },
   "exct_damnation": {
    "cap_state_percent": 44.783137285363864,
    "eft": "tests/fits/exct_damnation.eft",
@@ -14824,6 +14948,921 @@
     "/targeting/max_targets": 4,
     "/targeting/scan_resolution": 825.0,
     "/targeting/sensor_strength": 9.6
+   }
+  },
+  "projfit_crucifier_x2_on_cerberus": {
+   "cap_state_percent": 39.00278821054356,
+   "eft": "tests/fits/exct_cerberus.eft",
+   "request_patch": {
+    "projected": [
+     {
+      "amount": 2,
+      "distance_m": 15000,
+      "fit": {
+       "boosters": [],
+       "cargo": [],
+       "character": {
+        "security_status": null,
+        "skills": {
+         "default_level": 5,
+         "levels": {}
+        }
+       },
+       "damage_pattern": null,
+       "drones": [],
+       "environment": {
+        "effect_type_ids": [],
+        "system_security": null
+       },
+       "fighters": [],
+       "fleet": {
+        "booster_fits": [],
+        "buffs": []
+       },
+       "implants": [],
+       "modules": [
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "low",
+         "spool": null,
+         "state": "active",
+         "type_id": 2048
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "low",
+         "spool": null,
+         "state": "active",
+         "type_id": 1183
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "mid",
+         "spool": null,
+         "state": "active",
+         "type_id": 438
+        },
+        {
+         "charge_type_id": 40335,
+         "mutation": null,
+         "slot": "mid",
+         "spool": null,
+         "state": "active",
+         "type_id": 37546
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "mid",
+         "spool": null,
+         "state": "active",
+         "type_id": 37546
+        },
+        {
+         "charge_type_id": 29005,
+         "mutation": null,
+         "slot": "mid",
+         "spool": null,
+         "state": "active",
+         "type_id": 2109
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "high",
+         "spool": null,
+         "state": "active",
+         "type_id": 13003
+        },
+        {
+         "charge_type_id": 23009,
+         "mutation": null,
+         "slot": "high",
+         "spool": null,
+         "state": "active",
+         "type_id": 3162
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "rig",
+         "spool": null,
+         "state": "online",
+         "type_id": 31358
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "rig",
+         "spool": null,
+         "state": "online",
+         "type_id": 31358
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "rig",
+         "spool": null,
+         "state": "online",
+         "type_id": 31358
+        }
+       ],
+       "options": {
+        "cap_sim": {
+         "max_time_s": null,
+         "reload": false,
+         "stagger": false
+        },
+        "default_spool": null,
+        "factor_reload": false,
+        "include_attributes": null,
+        "nos_no_target_cap": false,
+        "rah": null,
+        "sources": false,
+        "validate": true
+       },
+       "overrides": [],
+       "projected": [],
+       "schema_version": 1,
+       "ship": {
+        "mode_type_id": null,
+        "type_id": 2161
+       },
+       "target_profile": null
+      },
+      "kind": "fit"
+     }
+    ]
+   },
+   "values": {
+    "/capacitor/capacity": 1200.0,
+    "/capacitor/recharge_time_s": 176.25,
+    "/capacitor/stable": true,
+    "/defense/ehp/armor": 3690.888119953864,
+    "/defense/ehp/hull": 3482.5870646766166,
+    "/defense/ehp/shield": 36571.428571428565,
+    "/defense/hp/armor": 1500.0,
+    "/defense/hp/hull": 1400.0,
+    "/defense/hp/shield": 10800.0,
+    "/defense/resonance/armor/em": 0.425,
+    "/defense/resonance/armor/explosive": 0.765,
+    "/defense/resonance/armor/kinetic": 0.31875,
+    "/defense/resonance/armor/thermal": 0.116875,
+    "/defense/resonance/hull/em": 0.402,
+    "/defense/resonance/hull/explosive": 0.402,
+    "/defense/resonance/hull/kinetic": 0.402,
+    "/defense/resonance/hull/thermal": 0.402,
+    "/defense/resonance/shield/em": 0.5906250000000001,
+    "/defense/resonance/shield/explosive": 0.29531250000000003,
+    "/defense/resonance/shield/kinetic": 0.17718750000000003,
+    "/defense/resonance/shield/thermal": 0.11812500000000002,
+    "/defense/tank/raw/armor_repair": 0,
+    "/defense/tank/raw/hull_repair": 0,
+    "/defense/tank/raw/passive_shield": 28.8,
+    "/defense/tank/raw/shield_repair": 0,
+    "/defense/tank/sustained/armor_repair": 0,
+    "/defense/tank/sustained/hull_repair": 0,
+    "/defense/tank/sustained/shield_repair": 0,
+    "/drones/control_range_m": 60000.0,
+    "/navigation/align_time_s": 6.468057136489591,
+    "/navigation/mass": 17720000.0,
+    "/navigation/max_velocity": 1926.1294088600453,
+    "/navigation/signature_radius": 651.5078394006124,
+    "/navigation/warp_scramble_status": 0.0,
+    "/navigation/warp_speed_au_s": 4.0,
+    "/offense/total/drone_dps+/offense/total/fighter_dps": 0,
+    "/offense/total/drone_volley+/offense/total/fighter_volley": 0,
+    "/offense/total/weapon_dps": 368.80607676594934,
+    "/offense/total/weapon_volley": 1858.6959402167336,
+    "/offense/weapons[module_index=10]/explosion_radius": 410.28157010196014,
+    "/offense/weapons[module_index=10]/explosion_velocity": 33.34693387725532,
+    "/offense/weapons[module_index=10]/range_m": 36847.67365162083,
+    "/offense/weapons[module_index=11]/explosion_radius": 410.28157010196014,
+    "/offense/weapons[module_index=11]/explosion_velocity": 33.34693387725532,
+    "/offense/weapons[module_index=11]/range_m": 36847.67365162083,
+    "/offense/weapons[module_index=12]/explosion_radius": 410.28157010196014,
+    "/offense/weapons[module_index=12]/explosion_velocity": 33.34693387725532,
+    "/offense/weapons[module_index=12]/range_m": 36847.67365162083,
+    "/offense/weapons[module_index=13]/explosion_radius": 410.28157010196014,
+    "/offense/weapons[module_index=13]/explosion_velocity": 33.34693387725532,
+    "/offense/weapons[module_index=13]/range_m": 36847.67365162083,
+    "/offense/weapons[module_index=9]/explosion_radius": 410.28157010196014,
+    "/offense/weapons[module_index=9]/explosion_velocity": 33.34693387725532,
+    "/offense/weapons[module_index=9]/range_m": 36847.67365162083,
+    "/resources/calibration/used": 225.0,
+    "/resources/cpu/total": 668.75,
+    "/resources/cpu/used": 545.55,
+    "/resources/drone_bandwidth/used": 0,
+    "/resources/power/total": 1025.0,
+    "/resources/power/used": 882.5,
+    "/resources/slots/high/total": 6.0,
+    "/resources/slots/low/total": 4.0,
+    "/resources/slots/mid/total": 5.0,
+    "/targeting/jam_chance_percent": 0,
+    "/targeting/max_range_m": 75000.0,
+    "/targeting/max_targets": 6,
+    "/targeting/scan_resolution": 352.5,
+    "/targeting/sensor_strength": 28.799999999999997
+   }
+  },
+  "projfit_crucifier_x3_falloff_on_rifter": {
+   "cap_state_percent": 83.49598710843377,
+   "eft": "tests/fits/exct_rifter.eft",
+   "request_patch": {
+    "projected": [
+     {
+      "amount": 3,
+      "distance_m": 30000,
+      "fit": {
+       "boosters": [],
+       "cargo": [],
+       "character": {
+        "security_status": null,
+        "skills": {
+         "default_level": 5,
+         "levels": {}
+        }
+       },
+       "damage_pattern": null,
+       "drones": [],
+       "environment": {
+        "effect_type_ids": [],
+        "system_security": null
+       },
+       "fighters": [],
+       "fleet": {
+        "booster_fits": [],
+        "buffs": []
+       },
+       "implants": [],
+       "modules": [
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "low",
+         "spool": null,
+         "state": "active",
+         "type_id": 2048
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "low",
+         "spool": null,
+         "state": "active",
+         "type_id": 1183
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "mid",
+         "spool": null,
+         "state": "active",
+         "type_id": 438
+        },
+        {
+         "charge_type_id": 40335,
+         "mutation": null,
+         "slot": "mid",
+         "spool": null,
+         "state": "active",
+         "type_id": 37546
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "mid",
+         "spool": null,
+         "state": "active",
+         "type_id": 37546
+        },
+        {
+         "charge_type_id": 29005,
+         "mutation": null,
+         "slot": "mid",
+         "spool": null,
+         "state": "active",
+         "type_id": 2109
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "high",
+         "spool": null,
+         "state": "active",
+         "type_id": 13003
+        },
+        {
+         "charge_type_id": 23009,
+         "mutation": null,
+         "slot": "high",
+         "spool": null,
+         "state": "active",
+         "type_id": 3162
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "rig",
+         "spool": null,
+         "state": "online",
+         "type_id": 31358
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "rig",
+         "spool": null,
+         "state": "online",
+         "type_id": 31358
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "rig",
+         "spool": null,
+         "state": "online",
+         "type_id": 31358
+        }
+       ],
+       "options": {
+        "cap_sim": {
+         "max_time_s": null,
+         "reload": false,
+         "stagger": false
+        },
+        "default_spool": null,
+        "factor_reload": false,
+        "include_attributes": null,
+        "nos_no_target_cap": false,
+        "rah": null,
+        "sources": false,
+        "validate": true
+       },
+       "overrides": [],
+       "projected": [],
+       "schema_version": 1,
+       "ship": {
+        "mode_type_id": null,
+        "type_id": 2161
+       },
+       "target_profile": null
+      },
+      "kind": "fit"
+     }
+    ]
+   },
+   "values": {
+    "/capacitor/capacity": 312.5,
+    "/capacitor/recharge_time_s": 93.75,
+    "/capacitor/stable": true,
+    "/defense/ehp/armor": 2589.715131335553,
+    "/defense/ehp/hull": 1088.3084577114428,
+    "/defense/ehp/shield": 886.6995073891625,
+    "/defense/hp/armor": 1312.5,
+    "/defense/hp/hull": 437.5,
+    "/defense/hp/shield": 562.5,
+    "/defense/resonance/armor/em": 0.34,
+    "/defense/resonance/armor/explosive": 0.49725,
+    "/defense/resonance/armor/kinetic": 0.6375,
+    "/defense/resonance/armor/thermal": 0.5525,
+    "/defense/resonance/hull/em": 0.402,
+    "/defense/resonance/hull/explosive": 0.402,
+    "/defense/resonance/hull/kinetic": 0.402,
+    "/defense/resonance/hull/thermal": 0.402,
+    "/defense/resonance/shield/em": 0.875,
+    "/defense/resonance/shield/explosive": 0.4375,
+    "/defense/resonance/shield/kinetic": 0.525,
+    "/defense/resonance/shield/thermal": 0.7000000000000001,
+    "/defense/tank/raw/armor_repair": 0,
+    "/defense/tank/raw/hull_repair": 0,
+    "/defense/tank/raw/passive_shield": 3.0,
+    "/defense/tank/raw/shield_repair": 0,
+    "/defense/tank/sustained/armor_repair": 0,
+    "/defense/tank/sustained/hull_repair": 0,
+    "/defense/tank/sustained/shield_repair": 0,
+    "/drones/control_range_m": 60000.0,
+    "/navigation/align_time_s": 5.245170868083969,
+    "/navigation/mass": 1668250.0,
+    "/navigation/max_velocity": 1148.5220290723812,
+    "/navigation/signature_radius": 35.0,
+    "/navigation/warp_scramble_status": 0.0,
+    "/navigation/warp_speed_au_s": 5.0,
+    "/offense/drones[drone_index=0]/falloff_m": 2000.0,
+    "/offense/drones[drone_index=0]/max_velocity": 6300.0,
+    "/offense/drones[drone_index=0]/optimal_m": 2625.0,
+    "/offense/drones[drone_index=0]/signature_radius": 25.0,
+    "/offense/drones[drone_index=0]/tracking": 3.24,
+    "/offense/total/drone_dps+/offense/total/fighter_dps": 32.175000000000004,
+    "/offense/total/drone_volley+/offense/total/fighter_volley": 128.70000000000002,
+    "/offense/total/weapon_dps": 243.12956327613847,
+    "/offense/total/weapon_volley": 354.06575289370556,
+    "/offense/weapons[module_index=6]/falloff_m": 1276.1553069925947,
+    "/offense/weapons[module_index=6]/optimal_m": 98.92676798392208,
+    "/offense/weapons[module_index=6]/tracking": 393.75,
+    "/offense/weapons[module_index=7]/falloff_m": 1276.1553069925947,
+    "/offense/weapons[module_index=7]/optimal_m": 98.92676798392208,
+    "/offense/weapons[module_index=7]/tracking": 393.75,
+    "/offense/weapons[module_index=8]/falloff_m": 1276.1553069925947,
+    "/offense/weapons[module_index=8]/optimal_m": 98.92676798392208,
+    "/offense/weapons[module_index=8]/tracking": 393.75,
+    "/offense/weapons[module_index=9]/explosion_radius": 65.7795290752184,
+    "/offense/weapons[module_index=9]/explosion_velocity": 51.0413564666783,
+    "/offense/weapons[module_index=9]/range_m": 3754.2588692196223,
+    "/resources/calibration/used": 675.0,
+    "/resources/cpu/total": 162.5,
+    "/resources/cpu/used": 190.0,
+    "/resources/drone_bandwidth/used": 10.0,
+    "/resources/power/total": 51.25,
+    "/resources/power/used": 42.51,
+    "/resources/slots/high/total": 3.0,
+    "/resources/slots/low/total": 4.0,
+    "/resources/slots/mid/total": 3.0,
+    "/targeting/jam_chance_percent": 0,
+    "/targeting/max_range_m": 28125.0,
+    "/targeting/max_targets": 4,
+    "/targeting/scan_resolution": 825.0,
+    "/targeting/sensor_strength": 9.6
+   }
+  },
+  "projfit_curse_x2_falloff_on_rifter": {
+   "eft": "tests/fits/exct_rifter.eft",
+   "request_patch": {
+    "projected": [
+     {
+      "amount": 2,
+      "distance_m": 20000,
+      "fit": {
+       "boosters": [],
+       "cargo": [],
+       "character": {
+        "security_status": null,
+        "skills": {
+         "default_level": 5,
+         "levels": {}
+        }
+       },
+       "damage_pattern": null,
+       "drones": [
+        {
+         "active": 5,
+         "mutation": null,
+         "quantity": 5,
+         "type_id": 2456
+        }
+       ],
+       "environment": {
+        "effect_type_ids": [],
+        "system_security": null
+       },
+       "fighters": [],
+       "fleet": {
+        "booster_fits": [],
+        "buffs": []
+       },
+       "implants": [],
+       "modules": [
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "low",
+         "spool": null,
+         "state": "active",
+         "type_id": 2048
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "low",
+         "spool": null,
+         "state": "active",
+         "type_id": 11269
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "low",
+         "spool": null,
+         "state": "active",
+         "type_id": 20349
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "low",
+         "spool": null,
+         "state": "active",
+         "type_id": 3530
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "mid",
+         "spool": null,
+         "state": "active",
+         "type_id": 12058
+        },
+        {
+         "charge_type_id": 29007,
+         "mutation": null,
+         "slot": "mid",
+         "spool": null,
+         "state": "active",
+         "type_id": 2109
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "mid",
+         "spool": null,
+         "state": "active",
+         "type_id": 2109
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "mid",
+         "spool": null,
+         "state": "active",
+         "type_id": 2032
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "high",
+         "spool": null,
+         "state": "active",
+         "type_id": 12267
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "high",
+         "spool": null,
+         "state": "active",
+         "type_id": 12267
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "high",
+         "spool": null,
+         "state": "active",
+         "type_id": 12259
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "rig",
+         "spool": null,
+         "state": "online",
+         "type_id": 31360
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "rig",
+         "spool": null,
+         "state": "online",
+         "type_id": 31372
+        }
+       ],
+       "options": {
+        "cap_sim": {
+         "max_time_s": null,
+         "reload": false,
+         "stagger": false
+        },
+        "default_spool": null,
+        "factor_reload": false,
+        "include_attributes": null,
+        "nos_no_target_cap": false,
+        "rah": null,
+        "sources": false,
+        "validate": true
+       },
+       "overrides": [],
+       "projected": [],
+       "schema_version": 1,
+       "ship": {
+        "mode_type_id": null,
+        "type_id": 20125
+       },
+       "target_profile": null
+      },
+      "kind": "fit"
+     }
+    ]
+   },
+   "values": {
+    "/capacitor/capacity": 312.5,
+    "/capacitor/recharge_time_s": 93.75,
+    "/capacitor/stable": false,
+    "/defense/ehp/armor": 2589.715131335553,
+    "/defense/ehp/hull": 1088.3084577114428,
+    "/defense/ehp/shield": 886.6995073891625,
+    "/defense/hp/armor": 1312.5,
+    "/defense/hp/hull": 437.5,
+    "/defense/hp/shield": 562.5,
+    "/defense/resonance/armor/em": 0.34,
+    "/defense/resonance/armor/explosive": 0.49725,
+    "/defense/resonance/armor/kinetic": 0.6375,
+    "/defense/resonance/armor/thermal": 0.5525,
+    "/defense/resonance/hull/em": 0.402,
+    "/defense/resonance/hull/explosive": 0.402,
+    "/defense/resonance/hull/kinetic": 0.402,
+    "/defense/resonance/hull/thermal": 0.402,
+    "/defense/resonance/shield/em": 0.875,
+    "/defense/resonance/shield/explosive": 0.4375,
+    "/defense/resonance/shield/kinetic": 0.525,
+    "/defense/resonance/shield/thermal": 0.7000000000000001,
+    "/defense/tank/raw/armor_repair": 0,
+    "/defense/tank/raw/hull_repair": 0,
+    "/defense/tank/raw/passive_shield": 3.0,
+    "/defense/tank/raw/shield_repair": 0,
+    "/defense/tank/sustained/armor_repair": 0,
+    "/defense/tank/sustained/hull_repair": 0,
+    "/defense/tank/sustained/shield_repair": 0,
+    "/drones/control_range_m": 60000.0,
+    "/navigation/align_time_s": 5.245170868083969,
+    "/navigation/mass": 1668250.0,
+    "/navigation/max_velocity": 1148.5220290723812,
+    "/navigation/signature_radius": 35.0,
+    "/navigation/warp_scramble_status": 0.0,
+    "/navigation/warp_speed_au_s": 5.0,
+    "/offense/drones[drone_index=0]/falloff_m": 2000.0,
+    "/offense/drones[drone_index=0]/max_velocity": 6300.0,
+    "/offense/drones[drone_index=0]/optimal_m": 2625.0,
+    "/offense/drones[drone_index=0]/signature_radius": 25.0,
+    "/offense/drones[drone_index=0]/tracking": 3.24,
+    "/offense/total/drone_dps+/offense/total/fighter_dps": 32.175000000000004,
+    "/offense/total/drone_volley+/offense/total/fighter_volley": 128.70000000000002,
+    "/offense/total/weapon_dps": 243.12956327613847,
+    "/offense/total/weapon_volley": 354.06575289370556,
+    "/offense/weapons[module_index=6]/falloff_m": 5066.123725707834,
+    "/offense/weapons[module_index=6]/optimal_m": 392.72276943471576,
+    "/offense/weapons[module_index=6]/tracking": 59.69946263104681,
+    "/offense/weapons[module_index=7]/falloff_m": 5066.123725707834,
+    "/offense/weapons[module_index=7]/optimal_m": 392.72276943471576,
+    "/offense/weapons[module_index=7]/tracking": 59.69946263104681,
+    "/offense/weapons[module_index=8]/falloff_m": 5066.123725707834,
+    "/offense/weapons[module_index=8]/optimal_m": 392.72276943471576,
+    "/offense/weapons[module_index=8]/tracking": 59.69946263104681,
+    "/offense/weapons[module_index=9]/explosion_radius": 25.5,
+    "/offense/weapons[module_index=9]/explosion_velocity": 193.5,
+    "/offense/weapons[module_index=9]/range_m": 8436.765294824345,
+    "/resources/calibration/used": 675.0,
+    "/resources/cpu/total": 162.5,
+    "/resources/cpu/used": 190.0,
+    "/resources/drone_bandwidth/used": 10.0,
+    "/resources/power/total": 51.25,
+    "/resources/power/used": 42.51,
+    "/resources/slots/high/total": 3.0,
+    "/resources/slots/low/total": 4.0,
+    "/resources/slots/mid/total": 3.0,
+    "/targeting/jam_chance_percent": 0,
+    "/targeting/max_range_m": 28125.0,
+    "/targeting/max_targets": 4,
+    "/targeting/scan_resolution": 825.0,
+    "/targeting/sensor_strength": 9.6
+   }
+  },
+  "projfit_curse_x3_on_ishtar": {
+   "eft": "tests/fits/exct_ishtar.eft",
+   "request_patch": {
+    "projected": [
+     {
+      "amount": 3,
+      "distance_m": 10000,
+      "fit": {
+       "boosters": [],
+       "cargo": [],
+       "character": {
+        "security_status": null,
+        "skills": {
+         "default_level": 5,
+         "levels": {}
+        }
+       },
+       "damage_pattern": null,
+       "drones": [
+        {
+         "active": 5,
+         "mutation": null,
+         "quantity": 5,
+         "type_id": 2456
+        }
+       ],
+       "environment": {
+        "effect_type_ids": [],
+        "system_security": null
+       },
+       "fighters": [],
+       "fleet": {
+        "booster_fits": [],
+        "buffs": []
+       },
+       "implants": [],
+       "modules": [
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "low",
+         "spool": null,
+         "state": "active",
+         "type_id": 2048
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "low",
+         "spool": null,
+         "state": "active",
+         "type_id": 11269
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "low",
+         "spool": null,
+         "state": "active",
+         "type_id": 20349
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "low",
+         "spool": null,
+         "state": "active",
+         "type_id": 3530
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "mid",
+         "spool": null,
+         "state": "active",
+         "type_id": 12058
+        },
+        {
+         "charge_type_id": 29007,
+         "mutation": null,
+         "slot": "mid",
+         "spool": null,
+         "state": "active",
+         "type_id": 2109
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "mid",
+         "spool": null,
+         "state": "active",
+         "type_id": 2109
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "mid",
+         "spool": null,
+         "state": "active",
+         "type_id": 2032
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "high",
+         "spool": null,
+         "state": "active",
+         "type_id": 12267
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "high",
+         "spool": null,
+         "state": "active",
+         "type_id": 12267
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "high",
+         "spool": null,
+         "state": "active",
+         "type_id": 12259
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "rig",
+         "spool": null,
+         "state": "online",
+         "type_id": 31360
+        },
+        {
+         "charge_type_id": null,
+         "mutation": null,
+         "slot": "rig",
+         "spool": null,
+         "state": "online",
+         "type_id": 31372
+        }
+       ],
+       "options": {
+        "cap_sim": {
+         "max_time_s": null,
+         "reload": false,
+         "stagger": false
+        },
+        "default_spool": null,
+        "factor_reload": false,
+        "include_attributes": null,
+        "nos_no_target_cap": false,
+        "rah": null,
+        "sources": false,
+        "validate": true
+       },
+       "overrides": [],
+       "projected": [],
+       "schema_version": 1,
+       "ship": {
+        "mode_type_id": null,
+        "type_id": 20125
+       },
+       "target_profile": null
+      },
+      "kind": "fit"
+     }
+    ]
+   },
+   "values": {
+    "/capacitor/capacity": 1400.0,
+    "/capacitor/recharge_time_s": 198.75,
+    "/capacitor/stable": false,
+    "/defense/ehp/armor": 4986.365407089988,
+    "/defense/ehp/hull": 7151.741293532338,
+    "/defense/ehp/shield": 39247.386759581874,
+    "/defense/hp/armor": 2000.0,
+    "/defense/hp/hull": 2875.0,
+    "/defense/hp/shield": 11879.999999999998,
+    "/defense/resonance/armor/em": 0.425,
+    "/defense/resonance/armor/explosive": 0.765,
+    "/defense/resonance/armor/kinetic": 0.138125,
+    "/defense/resonance/armor/thermal": 0.27625,
+    "/defense/resonance/hull/em": 0.402,
+    "/defense/resonance/hull/explosive": 0.402,
+    "/defense/resonance/hull/kinetic": 0.402,
+    "/defense/resonance/hull/thermal": 0.402,
+    "/defense/resonance/shield/em": 0.5906250000000001,
+    "/defense/resonance/shield/explosive": 0.29531250000000003,
+    "/defense/resonance/shield/kinetic": 0.08859375000000001,
+    "/defense/resonance/shield/thermal": 0.23625000000000004,
+    "/defense/tank/raw/armor_repair": 0,
+    "/defense/tank/raw/hull_repair": 0,
+    "/defense/tank/raw/passive_shield": 31.679999999999993,
+    "/defense/tank/raw/shield_repair": 0,
+    "/defense/tank/sustained/armor_repair": 0,
+    "/defense/tank/sustained/hull_repair": 0,
+    "/defense/tank/sustained/shield_repair": 0,
+    "/drones/control_range_m": 133000.0,
+    "/navigation/align_time_s": 8.247688986764732,
+    "/navigation/mass": 15600000.0,
+    "/navigation/max_velocity": 1559.6454326923078,
+    "/navigation/signature_radius": 706.3161499763914,
+    "/navigation/warp_scramble_status": 0.0,
+    "/navigation/warp_speed_au_s": 4.0,
+    "/offense/drones[drone_index=0]/falloff_m": 39000.0,
+    "/offense/drones[drone_index=0]/max_velocity": 1.25e-05,
+    "/offense/drones[drone_index=0]/optimal_m": 32343.749999999996,
+    "/offense/drones[drone_index=0]/signature_radius": 300.0,
+    "/offense/drones[drone_index=0]/tracking": 0.041999999999999996,
+    "/offense/drones[drone_index=1]/falloff_m": 3900.0,
+    "/offense/drones[drone_index=1]/max_velocity": 2520.0,
+    "/offense/drones[drone_index=1]/optimal_m": 6037.499999999999,
+    "/offense/drones[drone_index=1]/signature_radius": 50.0,
+    "/offense/drones[drone_index=1]/tracking": 0.696,
+    "/offense/total/drone_dps+/offense/total/fighter_dps": 916.4278480358747,
+    "/offense/total/drone_volley+/offense/total/fighter_volley": 3665.711392143499,
+    "/offense/total/weapon_dps": 0.0,
+    "/offense/total/weapon_volley": 0.0,
+    "/resources/calibration/used": 150.0,
+    "/resources/cpu/total": 425.0,
+    "/resources/cpu/used": 453.0,
+    "/resources/drone_bandwidth/used": 175.0,
+    "/resources/power/total": 925.0,
+    "/resources/power/used": 413.0,
+    "/resources/slots/high/total": 4.0,
+    "/resources/slots/low/total": 6.0,
+    "/resources/slots/mid/total": 4.0,
+    "/targeting/jam_chance_percent": 0,
+    "/targeting/max_range_m": 75000.0,
+    "/targeting/max_targets": 7,
+    "/targeting/scan_resolution": 367.5,
+    "/targeting/sensor_strength": 27.599999999999998
    }
   },
   "projfit_hyperion_x2_on_ishtar": {
