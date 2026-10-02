@@ -1,0 +1,23 @@
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Download dataset (latest SDE release of EX-CT/eve-sde-pipeline)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download -R EX-CT/eve-sde-pipeline --pattern 'dataset-*.json.gz' --pattern manifest.json
+          mv dataset-*.json.gz dataset.json.gz
+      - run: cargo build --release
+      - run: cargo test --release -- --nocapture
+      - name: Smoke CLI
+        run: |
+          ./target/release/eve-dogma meta
+          ./target/release/eve-dogma eft tests/fits/exct_rifter.eft --calc --skills 5 > /dev/null
