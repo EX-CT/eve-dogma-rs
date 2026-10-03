@@ -176,6 +176,35 @@ impl<T> Dense<T> {
     }
 }
 
+/// bytes (de)serialized as one block: bincode copies them without per-element visits or UTF-8 validation
+#[derive(Default)]
+struct RawBytes(Vec<u8>);
+
+impl Serialize for RawBytes {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        s.serialize_bytes(&self.0)
+    }
+}
+
+impl<'de> Deserialize<'de> for RawBytes {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        struct V;
+        impl<'de> serde::de::Visitor<'de> for V {
+            type Value = RawBytes;
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                f.write_str("bytes")
+            }
+            fn visit_bytes<E: serde::de::Error>(self, v: &[u8]) -> Result<RawBytes, E> {
+                Ok(RawBytes(v.to_vec()))
+            }
+            fn visit_byte_buf<E: serde::de::Error>(self, v: Vec<u8>) -> Result<RawBytes, E> {
+                Ok(RawBytes(v))
+            }
+        }
+        d.deserialize_byte_buf(V)
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Dataset {
     pub build: u64,
@@ -191,7 +220,7 @@ pub struct Dataset {
     pub mutaplasmids: FxHashMap<u32, MutaInfo>,
     /// Chinese type names as one "id\tname\n" blob sorted by id: one allocation to load from the binary cache
     /// instead of ~10k; indexed on first use (only the search/type commands read it)
-    names_zh_raw: String,
+    names_zh_raw: RawBytes,
     #[serde(skip)]
     names_zh_idx: std::sync::OnceLock<Vec<(u32, u32, u32)>>,
     attr_by_name: FxHashMap<String, u32>,
@@ -515,7 +544,7 @@ impl Dataset {
                 }
                 s.push_str(&format!("{id}\t{n}\n"));
             }
-            s
+            RawBytes(s.into_bytes())
         };
         Ok(Dataset {
             build: raw.sde.build,
@@ -572,7 +601,7 @@ impl Dataset {
         let idx = self.names_zh_idx.get_or_init(|| {
             let mut v = Vec::new();
             let mut pos = 0usize;
-            for line in self.names_zh_raw.split_inclusive('\n') {
+            for line in self.names_zh_str().split_inclusive('\n') {
                 if let Some((k, n)) = line.trim_end_matches('\n').split_once('\t') {
                     let start = pos + k.len() + 1;
                     v.push((k.parse().unwrap_or(0), start as u32, (start + n.len()) as u32));
@@ -581,7 +610,11 @@ impl Dataset {
             }
             v
         });
-        idx.binary_search_by_key(&id, |x| x.0).ok().map(|k| &self.names_zh_raw[idx[k].1 as usize..idx[k].2 as usize])
+        idx.binary_search_by_key(&id, |x| x.0).ok().map(|k| &self.names_zh_str()[idx[k].1 as usize..idx[k].2 as usize])
+    }
+
+    fn names_zh_str(&self) -> &str {
+        std::str::from_utf8(&self.names_zh_raw.0).unwrap_or("")
     }
 
     pub fn type_by_name(&self, name: &str) -> Option<u32> {
