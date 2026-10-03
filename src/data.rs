@@ -75,7 +75,8 @@ pub struct EffectInfo {
     pub stacking_exempt: bool,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+/// (de)serialized as one packed byte record (see `TypeInfo::pack`): a cached cold start decodes ~10k types
+#[derive(Debug, Clone)]
 pub struct TypeInfo {
     pub id: u32,
     pub name: String,
@@ -90,9 +91,7 @@ pub struct TypeInfo {
     pub meta_group: Option<u32>,
     pub meta_level: Option<i32>,
     pub variation_parent: Option<u32>,
-    #[serde(with = "packed_attrs")]
     pub attrs: Vec<(u32, f64)>,
-    #[serde(with = "packed_effects")]
     pub effects: Vec<(u32, bool)>,
     /// non-zero requiredSkill1..6 values (computed at load)
     pub req_skills: Vec<u32>,
@@ -178,52 +177,130 @@ impl<T> Dense<T> {
     }
 }
 
-/// (de)serialize a small-tuple Vec as one little-endian byte block: one bounds check per element instead of a serde
-/// visit per field (per-type attribute lists are most of the binary cache)
-macro_rules! packed_vec {
-    ($m:ident, $t:ty, $w:expr, |$x:ident, $o:ident| $enc:expr, |$c:ident| $dec:expr) => {
-        mod $m {
-            use serde::{Deserializer, Serializer};
-            pub fn serialize<S: Serializer>(v: &[$t], s: S) -> Result<S::Ok, S::Error> {
-                let mut $o: Vec<u8> = Vec::with_capacity(v.len() * $w);
-                for $x in v {
-                    $enc;
+/// packed little-endian record of a TypeInfo: fixed scalars, optional ids (flag byte + value), then the name and
+/// the attribute / effect / required-skill lists each as a u32 count followed by their elements
+impl TypeInfo {
+    fn pack(&self, o: &mut Vec<u8>) {
+        fn opt(o: &mut Vec<u8>, v: Option<u32>) {
+            match v {
+                Some(x) => {
+                    o.push(1);
+                    o.extend_from_slice(&x.to_le_bytes())
                 }
-                s.serialize_bytes(&$o)
-            }
-            pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<$t>, D::Error> {
-                struct V;
-                impl<'de> serde::de::Visitor<'de> for V {
-                    type Value = Vec<$t>;
-                    fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                        f.write_str("packed bytes")
-                    }
-                    fn visit_bytes<E: serde::de::Error>(self, b: &[u8]) -> Result<Vec<$t>, E> {
-                        if b.len() % $w != 0 {
-                            return Err(E::custom("packed length"));
-                        }
-                        Ok(b.chunks_exact($w).map(|$c| $dec).collect())
-                    }
-                    fn visit_borrowed_bytes<E: serde::de::Error>(self, b: &'de [u8]) -> Result<Vec<$t>, E> {
-                        self.visit_bytes(b)
-                    }
-                    fn visit_byte_buf<E: serde::de::Error>(self, b: Vec<u8>) -> Result<Vec<$t>, E> {
-                        self.visit_bytes(&b)
-                    }
-                }
-                d.deserialize_bytes(V)
+                None => o.push(0),
             }
         }
-    };
+        for x in [self.id, self.group, self.category] {
+            o.extend_from_slice(&x.to_le_bytes());
+        }
+        o.push(self.published as u8);
+        for x in [self.mass, self.volume, self.capacity, self.radius] {
+            o.extend_from_slice(&x.to_le_bytes());
+        }
+        opt(o, self.market_group);
+        opt(o, self.meta_group);
+        opt(o, self.meta_level.map(|x| x as u32));
+        opt(o, self.variation_parent);
+        o.extend_from_slice(&(self.name.len() as u32).to_le_bytes());
+        o.extend_from_slice(self.name.as_bytes());
+        o.extend_from_slice(&(self.attrs.len() as u32).to_le_bytes());
+        for (a, v) in &self.attrs {
+            o.extend_from_slice(&a.to_le_bytes());
+            o.extend_from_slice(&v.to_le_bytes());
+        }
+        o.extend_from_slice(&(self.effects.len() as u32).to_le_bytes());
+        for (e, d) in &self.effects {
+            o.extend_from_slice(&e.to_le_bytes());
+            o.push(*d as u8);
+        }
+        o.extend_from_slice(&(self.req_skills.len() as u32).to_le_bytes());
+        for s in &self.req_skills {
+            o.extend_from_slice(&s.to_le_bytes());
+        }
+    }
+
+    fn unpack(b: &[u8]) -> Option<TypeInfo> {
+        struct R<'a>(&'a [u8]);
+        impl<'a> R<'a> {
+            #[inline]
+            fn take(&mut self, n: usize) -> Option<&'a [u8]> {
+                if self.0.len() < n {
+                    return None;
+                }
+                let (a, b) = self.0.split_at(n);
+                self.0 = b;
+                Some(a)
+            }
+            #[inline]
+            fn u8(&mut self) -> Option<u8> {
+                Some(self.take(1)?[0])
+            }
+            #[inline]
+            fn u32(&mut self) -> Option<u32> {
+                Some(u32::from_le_bytes(self.take(4)?.try_into().ok()?))
+            }
+            #[inline]
+            fn f64(&mut self) -> Option<f64> {
+                Some(f64::from_le_bytes(self.take(8)?.try_into().ok()?))
+            }
+            #[inline]
+            fn opt(&mut self) -> Option<Option<u32>> {
+                Some(if self.u8()? != 0 { Some(self.u32()?) } else { None })
+            }
+        }
+        let mut r = R(b);
+        let (id, group, category) = (r.u32()?, r.u32()?, r.u32()?);
+        let published = r.u8()? != 0;
+        let (mass, volume, capacity, radius) = (r.f64()?, r.f64()?, r.f64()?, r.f64()?);
+        let (market_group, meta_group, meta_level, variation_parent) = (r.opt()?, r.opt()?, r.opt()?.map(|x| x as i32), r.opt()?);
+        let n = r.u32()? as usize;
+        let name = std::str::from_utf8(r.take(n)?).ok()?.to_string();
+        let n = r.u32()? as usize;
+        let attrs = r
+            .take(n.checked_mul(12)?)?
+            .chunks_exact(12)
+            .map(|c| (u32::from_le_bytes([c[0], c[1], c[2], c[3]]), f64::from_le_bytes([c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11]])))
+            .collect();
+        let n = r.u32()? as usize;
+        let effects = r.take(n.checked_mul(5)?)?.chunks_exact(5).map(|c| (u32::from_le_bytes([c[0], c[1], c[2], c[3]]), c[4] != 0)).collect();
+        let n = r.u32()? as usize;
+        let req_skills = r.take(n.checked_mul(4)?)?.chunks_exact(4).map(|c| u32::from_le_bytes([c[0], c[1], c[2], c[3]])).collect();
+        if !r.0.is_empty() {
+            return None;
+        }
+        Some(TypeInfo { id, name, group, category, published, mass, volume, capacity, radius, market_group, meta_group, meta_level, variation_parent, attrs, effects, req_skills })
+    }
 }
-packed_vec!(packed_attrs, (u32, f64), 12, |x, o| {
-    o.extend_from_slice(&x.0.to_le_bytes());
-    o.extend_from_slice(&x.1.to_le_bytes())
-}, |c| (u32::from_le_bytes([c[0], c[1], c[2], c[3]]), f64::from_le_bytes([c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11]])));
-packed_vec!(packed_effects, (u32, bool), 5, |x, o| {
-    o.extend_from_slice(&x.0.to_le_bytes());
-    o.push(x.1 as u8)
-}, |c| (u32::from_le_bytes([c[0], c[1], c[2], c[3]]), c[4] != 0));
+
+impl Serialize for TypeInfo {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        let mut o = Vec::with_capacity(96 + self.name.len() + 12 * self.attrs.len());
+        self.pack(&mut o);
+        s.serialize_bytes(&o)
+    }
+}
+
+impl<'de> Deserialize<'de> for TypeInfo {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        struct V;
+        impl<'de> serde::de::Visitor<'de> for V {
+            type Value = TypeInfo;
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                f.write_str("packed TypeInfo")
+            }
+            fn visit_bytes<E: serde::de::Error>(self, b: &[u8]) -> Result<TypeInfo, E> {
+                TypeInfo::unpack(b).ok_or_else(|| E::custom("bad packed TypeInfo"))
+            }
+            fn visit_borrowed_bytes<E: serde::de::Error>(self, b: &'de [u8]) -> Result<TypeInfo, E> {
+                self.visit_bytes(b)
+            }
+            fn visit_byte_buf<E: serde::de::Error>(self, b: Vec<u8>) -> Result<TypeInfo, E> {
+                self.visit_bytes(&b)
+            }
+        }
+        d.deserialize_bytes(V)
+    }
+}
 
 /// bytes (de)serialized as one block: bincode copies them without per-element visits or UTF-8 validation
 #[derive(Default)]
