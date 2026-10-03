@@ -149,7 +149,8 @@ struct TIndex {
 
 impl TIndex {
     fn build(items: &[Item<'_>]) -> TIndex {
-        let mut t = TIndex::default();
+        let m = || FxHashMap::with_capacity_and_hasher(32, Default::default());
+        let mut t = TIndex { ship_group: m(), ship_skill: m(), owned_skill: m(), char_group: m(), char_skill: m(), ..TIndex::default() };
         for (i, it) in items.iter().enumerate() {
             if it.loc == Loc::Ship {
                 t.ship_loc.push(i);
