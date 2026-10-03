@@ -121,7 +121,10 @@ impl J {
                 out.push(b']');
             }
             J::O(o) => {
-                o.sort_unstable_by(|a, b| a.0.as_bytes().cmp(b.0.as_bytes()));
+                // the most frequent literal objects in stats.rs list their keys in sorted order already
+                if !o.is_sorted_by(|a, b| a.0.as_bytes() <= b.0.as_bytes()) {
+                    o.sort_unstable_by(|a, b| a.0.as_bytes().cmp(b.0.as_bytes()));
+                }
                 out.push(b'{');
                 for (n, (k, v)) in o.iter_mut().enumerate() {
                     if n > 0 {

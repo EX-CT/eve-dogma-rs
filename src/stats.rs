@@ -74,9 +74,9 @@ impl Dmg {
     }
     fn json(&self) -> J {
         if self.pure != 0.0 {
-            return jx!({"em": self.em, "thermal": self.th, "kinetic": self.ki, "explosive": self.ex, "pure": self.pure, "total": self.total()});
+            return jx!({"em": self.em, "explosive": self.ex, "kinetic": self.ki, "pure": self.pure, "thermal": self.th, "total": self.total()});
         }
-        jx!({"em": self.em, "thermal": self.th, "kinetic": self.ki, "explosive": self.ex, "total": self.total()})
+        jx!({"em": self.em, "explosive": self.ex, "kinetic": self.ki, "thermal": self.th, "total": self.total()})
     }
 }
 
@@ -282,7 +282,7 @@ impl<'a> Fit<'a> {
         let count_slot = |s: Slot| modules.iter().filter(|&&i| self.items[i].slot == Some(s)).count();
         let turrets_used = modules.iter().filter(|&&i| self.has_effect_named(i, &["turretFitted"])).count();
         let launchers_used = modules.iter().filter(|&&i| self.has_effect_named(i, &["launcherFitted"])).count();
-        let usage = |u: f64, t: f64| jx!({"used": u, "total": t});
+        let usage = |u: f64, t: f64| jx!({"total": t, "used": u});
         let slot_tot = |n: &str| g(ship, n);
         let fighter_class = |i: usize| -> &'static str {
             if g(i, "fighterSquadronIsHeavy") > 0.0 {
@@ -525,7 +525,7 @@ impl<'a> Fit<'a> {
         let hp_a = g(ship, "armorHP");
         let hp_h = self.get(ship, 9);
         let (e_s, e_a, e_h) = (effectivify(hp_s, rs), effectivify(hp_a, ra), effectivify(hp_h, rh));
-        let res_json = |r: [f64; 4]| jx!({"em": r[0], "thermal": r[1], "kinetic": r[2], "explosive": r[3]});
+        let res_json = |r: [f64; 4]| jx!({"em": r[0], "explosive": r[3], "kinetic": r[2], "thermal": r[1]});
         // local repairs
         let mut shield_rep = 0.0;
         let mut armor_rep = 0.0;
@@ -580,14 +580,14 @@ impl<'a> Fit<'a> {
         let shield_rr_s = g(ship, "shieldRechargeRate") / 1000.0;
         let passive = if shield_rr_s > 0.0 { 10.0 / shield_rr_s * 0.5 * 0.5 * hp_s } else { 0.0 };
         let mut defense = jx!({
-            "hp": {"shield": hp_s, "armor": hp_a, "hull": hp_h, "total": hp_s + hp_a + hp_h},
-            "resonance": {"shield": res_json(rs), "armor": res_json(ra), "hull": res_json(rh)},
-            "ehp": {"shield": e_s, "armor": e_a, "hull": e_h, "total": e_s + e_a + e_h},
-            "damage_pattern": {"em": dp.em, "thermal": dp.thermal, "kinetic": dp.kinetic, "explosive": dp.explosive},
+            "hp": {"armor": hp_a, "hull": hp_h, "shield": hp_s, "total": hp_s + hp_a + hp_h},
+            "resonance": {"armor": res_json(ra), "hull": res_json(rh), "shield": res_json(rs)},
+            "ehp": {"armor": e_a, "hull": e_h, "shield": e_s, "total": e_s + e_a + e_h},
+            "damage_pattern": {"em": dp.em, "explosive": dp.explosive, "kinetic": dp.kinetic, "thermal": dp.thermal},
             "tank": {
-                "raw": {"passive_shield": passive, "shield_repair": shield_rep, "armor_repair": armor_rep, "hull_repair": hull_rep},
-                "effective": {"passive_shield": effectivify(passive, rs), "shield_repair": effectivify(shield_rep, rs),
-                              "armor_repair": effectivify(armor_rep, ra), "hull_repair": effectivify(hull_rep, rh)},
+                "raw": {"armor_repair": armor_rep, "hull_repair": hull_rep, "passive_shield": passive, "shield_repair": shield_rep},
+                "effective": {"armor_repair": effectivify(armor_rep, ra), "hull_repair": effectivify(hull_rep, rh),
+                              "passive_shield": effectivify(passive, rs), "shield_repair": effectivify(shield_rep, rs)},
             },
         });
 
@@ -754,9 +754,9 @@ impl<'a> Fit<'a> {
                     sus[l] += adj[l];
                 }
             }
-            defense["tank"]["sustained"] = jx!({"passive_shield": passive, "shield_repair": sus[0], "armor_repair": sus[1], "hull_repair": sus[2]});
-            defense["tank"]["sustained_effective"] = jx!({"passive_shield": effectivify(passive, rs), "shield_repair": effectivify(sus[0], rs),
-                "armor_repair": effectivify(sus[1], ra), "hull_repair": effectivify(sus[2], rh)});
+            defense["tank"]["sustained"] = jx!({"armor_repair": sus[1], "hull_repair": sus[2], "passive_shield": passive, "shield_repair": sus[0]});
+            defense["tank"]["sustained_effective"] = jx!({"armor_repair": effectivify(sus[1], ra), "hull_repair": effectivify(sus[2], rh),
+                "passive_shield": effectivify(passive, rs), "shield_repair": effectivify(sus[0], rs)});
         }
 
         // ---------------- navigation
