@@ -329,7 +329,7 @@ impl NameIndex {
 
     /// `items` in ascending id order (the lowest id wins for a duplicated name); `names` looks a name up by id
     fn build<'a>(items: impl Iterator<Item = (u32, &'a str)>, names: impl Fn(u32) -> Option<&'a str>) -> NameIndex {
-        let mut ix = NameIndex::default();
+        let mut ix = NameIndex { map: FxHashMap::with_capacity_and_hasher(items.size_hint().0.max(4096), Default::default()), extra: Vec::new() };
         for (id, name) in items {
             let h = NameIndex::hash(name);
             match ix.map.get(&h) {
