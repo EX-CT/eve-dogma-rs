@@ -302,6 +302,137 @@ impl<'de> Deserialize<'de> for TypeInfo {
     }
 }
 
+/// All types of the dataset. In the binary cache each type is one packed record (`TypeInfo::pack`); a record is
+/// decoded the first time the type is looked up, so a cached cold start does not decode ~10k types to use ~100.
+pub struct Types {
+    /// type ids, ascending
+    ids: Vec<u32>,
+    pos: TypePos,
+    raw: Vec<u8>,
+    /// record i is raw[offs[i]..offs[i + 1]]
+    offs: Vec<u32>,
+    cells: Box<[std::sync::OnceLock<Box<TypeInfo>>]>,
+}
+
+/// type id -> index into `ids`: a dense table (stored index + 1, 0 = absent) while ids are small, else a map
+enum TypePos {
+    Dense(Vec<u32>),
+    Map(FxHashMap<u32, u32>),
+}
+
+impl Types {
+    fn build(ids: Vec<u32>, raw: Vec<u8>, offs: Vec<u32>, cells: Box<[std::sync::OnceLock<Box<TypeInfo>>]>) -> Types {
+        let max = ids.last().copied().unwrap_or(0) as usize;
+        let pos = if max <= 1 << 22 {
+            let mut d = vec![0u32; max + 1];
+            for (i, &id) in ids.iter().enumerate() {
+                d[id as usize] = i as u32 + 1;
+            }
+            TypePos::Dense(d)
+        } else {
+            TypePos::Map(ids.iter().enumerate().map(|(i, &id)| (id, i as u32)).collect())
+        };
+        Types { ids, pos, raw, offs, cells }
+    }
+
+    pub fn from_map(m: FxHashMap<u32, TypeInfo>) -> Types {
+        let mut v: Vec<(u32, TypeInfo)> = m.into_iter().collect();
+        v.sort_unstable_by_key(|x| x.0);
+        let mut raw = Vec::new();
+        let mut offs = vec![0u32];
+        for (_, t) in &v {
+            t.pack(&mut raw);
+            offs.push(raw.len() as u32);
+        }
+        let ids = v.iter().map(|x| x.0).collect();
+        let cells = v.into_iter().map(|(_, t)| std::sync::OnceLock::from(Box::new(t))).collect();
+        Types::build(ids, raw, offs, cells)
+    }
+
+    #[inline]
+    fn index(&self, id: u32) -> Option<usize> {
+        match &self.pos {
+            TypePos::Dense(d) => match d.get(id as usize) {
+                Some(&k) if k > 0 => Some(k as usize - 1),
+                _ => None,
+            },
+            TypePos::Map(m) => m.get(&id).map(|&k| k as usize),
+        }
+    }
+
+    fn at(&self, i: usize) -> &TypeInfo {
+        self.cells[i].get_or_init(|| {
+            let rec = &self.raw[self.offs[i] as usize..self.offs[i + 1] as usize];
+            match TypeInfo::unpack(rec) {
+                Some(t) if t.id == self.ids[i] => Box::new(t),
+                _ => panic!("corrupt dataset cache entry for type {} (delete the eve-dogma cache directory)", self.ids[i]),
+            }
+        })
+    }
+
+    #[inline]
+    pub fn get(&self, id: &u32) -> Option<&TypeInfo> {
+        self.index(*id).map(|i| self.at(i))
+    }
+
+    pub fn contains_key(&self, id: &u32) -> bool {
+        self.index(*id).is_some()
+    }
+
+    pub fn len(&self) -> usize {
+        self.ids.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.ids.is_empty()
+    }
+
+    /// all types in ascending id order (decodes every record)
+    pub fn iter(&self) -> impl Iterator<Item = (&u32, &TypeInfo)> {
+        self.ids.iter().enumerate().map(move |(i, id)| (id, self.at(i)))
+    }
+}
+
+impl std::ops::Index<&u32> for Types {
+    type Output = TypeInfo;
+    fn index(&self, id: &u32) -> &TypeInfo {
+        self.get(id).expect("unknown type id")
+    }
+}
+
+impl Serialize for Types {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        let ids: Vec<u8> = self.ids.iter().flat_map(|x| x.to_le_bytes()).collect();
+        let offs: Vec<u8> = self.offs.iter().flat_map(|x| x.to_le_bytes()).collect();
+        (RawBytes(ids), RawBytes(offs), RawBytes(self.raw.clone())).serialize(s)
+    }
+}
+
+impl<'de> Deserialize<'de> for Types {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        use serde::de::Error;
+        let (ids, offs, raw) = <(RawBytes, RawBytes, RawBytes)>::deserialize(d)?;
+        let u32s = |b: &[u8]| -> Result<Vec<u32>, D::Error> {
+            if b.len() % 4 != 0 {
+                return Err(D::Error::custom("packed u32 length"));
+            }
+            Ok(b.chunks_exact(4).map(|c| u32::from_le_bytes([c[0], c[1], c[2], c[3]])).collect())
+        };
+        let (ids, offs, raw) = (u32s(&ids.0)?, u32s(&offs.0)?, raw.0);
+        // structural checks; a record itself is checked when decoded
+        if offs.len() != ids.len() + 1
+            || offs.first() != Some(&0)
+            || offs.last().map(|&x| x as usize) != Some(raw.len())
+            || offs.windows(2).any(|w| w[0] > w[1])
+            || ids.windows(2).any(|w| w[0] >= w[1])
+        {
+            return Err(D::Error::custom("bad type table"));
+        }
+        let cells = (0..ids.len()).map(|_| std::sync::OnceLock::new()).collect();
+        Ok(Types::build(ids, raw, offs, cells))
+    }
+}
+
 /// bytes (de)serialized as one block: bincode copies them without per-element visits or UTF-8 validation
 #[derive(Default)]
 struct RawBytes(Vec<u8>);
@@ -336,7 +467,7 @@ pub struct Dataset {
     pub build: u64,
     pub release_date: Option<String>,
     pub sha256: String,
-    pub types: FxHashMap<u32, TypeInfo>,
+    pub types: Types,
     pub groups: FxHashMap<u32, GroupInfo>,
     /// category id -> English name
     pub categories: FxHashMap<u32, String>,
@@ -676,7 +807,7 @@ impl Dataset {
             build: raw.sde.build,
             release_date: raw.sde.release_date,
             sha256,
-            types,
+            types: Types::from_map(types),
             groups,
             categories,
             attrs,
@@ -823,3 +954,4 @@ pub fn sha256_hex(data: &[u8]) -> String {
     let d = Sha256::digest(data);
     d.iter().map(|b| format!("{b:02x}")).collect()
 }
+
