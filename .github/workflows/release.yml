@@ -1,21 +1,27 @@
 name: release
 # On a pushed tag v*: build the eve-dogma CLI for 5 targets, attach the archives + SHA256SUMS to the
-# GitHub release of that tag (created as a draft-free release if it does not exist yet).
+# GitHub release of that tag (created if it does not exist yet). Manual runs default to a dry run:
+# build + package only, archives kept as run artifacts, nothing uploaded to a release.
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
     inputs:
       tag:
-        description: 'existing tag to (re)build and upload assets for'
-        required: true
+        description: 'existing tag to (re)build; empty = current ref, archives named dev-<sha>'
+        required: false
+        default: ''
+      dry_run:
+        description: 'build + package only (artifacts on the run), no release upload'
+        type: boolean
+        default: true
 
 permissions:
   contents: read
 
 env:
   CARGO_TERM_COLOR: always
-  TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  TAG: ${{ github.event_name == 'workflow_dispatch' && (inputs.tag || format('dev-{0}', github.sha)) || github.ref_name }}
 
 jobs:
   build:
@@ -33,7 +39,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ env.TAG }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -73,6 +79,7 @@ jobs:
 
   release:
     needs: build
+    if: github.event_name == 'push' || !inputs.dry_run
     runs-on: ubuntu-latest
     permissions:
       contents: write
