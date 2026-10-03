@@ -925,10 +925,10 @@ impl<'a> Fit<'a> {
         let ship_t = &ds.types[&self.items[ship].type_id];
         let groups_attrs = &ds.wk.can_fit_group;
         let types_attrs = &ds.wk.can_fit_type;
-        let mut fitted_group: rustc_hash::FxHashMap<u32, u32> = Default::default();
-        let mut fitted_type: rustc_hash::FxHashMap<u32, u32> = Default::default();
-        let mut active_group: rustc_hash::FxHashMap<u32, u32> = Default::default();
-        let mut online_group: rustc_hash::FxHashMap<u32, u32> = Default::default();
+        let mut fitted_group: rustc_hash::FxHashMap<u32, u32> = rustc_hash::FxHashMap::with_capacity_and_hasher(modules.len(), Default::default());
+        let mut fitted_type: rustc_hash::FxHashMap<u32, u32> = rustc_hash::FxHashMap::with_capacity_and_hasher(modules.len(), Default::default());
+        let mut active_group: rustc_hash::FxHashMap<u32, u32> = rustc_hash::FxHashMap::with_capacity_and_hasher(modules.len(), Default::default());
+        let mut online_group: rustc_hash::FxHashMap<u32, u32> = rustc_hash::FxHashMap::with_capacity_and_hasher(modules.len(), Default::default());
         for &i in &modules {
             let it = &self.items[i];
             let idx = it.req_index;
