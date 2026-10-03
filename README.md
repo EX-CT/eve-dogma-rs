@@ -14,6 +14,46 @@ design docs: [EX-CT/eve-fit-docs](https://github.com/EX-CT/eve-fit-docs)).
   Modifiers come from the SDE `modifierInfo`; effects CCP ships without it are covered by
   small data patches in the pipeline and a few documented engine specials.
 
+## Install
+
+Prebuilt CLI binaries are attached to every `v*` release of this repository (built by
+`.github/workflows/release.yml`): `eve-dogma-<tag>-<platform>.tar.gz` for `linux-x86_64`, `linux-aarch64`,
+`macos-x86_64`, `macos-arm64`, and `eve-dogma-<tag>-windows-x86_64.zip`. Each archive holds the `eve-dogma`
+binary, this README and the licenses; `SHA256SUMS` covers all archives. Linux builds need glibc 2.35+
+(Ubuntu 22.04 or newer); there are no other runtime dependencies.
+
+```bash
+# 1. binary (pick your platform; with the GitHub CLI, or download the same files from the release page)
+TAG=$(gh release view -R EX-CT/eve-dogma-rs --json tagName -q .tagName)
+gh release download "$TAG" -R EX-CT/eve-dogma-rs --pattern "eve-dogma-$TAG-linux-x86_64.tar.gz" --pattern SHA256SUMS
+sha256sum --ignore-missing -c SHA256SUMS
+tar xzf "eve-dogma-$TAG-linux-x86_64.tar.gz"
+install -m 755 "eve-dogma-$TAG-linux-x86_64/eve-dogma" ~/.local/bin/    # or anywhere on PATH
+
+# 2. dataset: latest release of EX-CT/eve-sde-pipeline (dataset-<build>[-r<rev>].json.gz + manifest.json)
+mkdir -p ~/.local/share/eve-dogma && cd ~/.local/share/eve-dogma
+gh release download -R EX-CT/eve-sde-pipeline --pattern 'dataset-*.json.gz' --pattern manifest.json --clobber
+python3 -c "import json,hashlib;m=json.load(open('manifest.json'));assert hashlib.sha256(open(m['file'],'rb').read()).hexdigest()==m['sha256_gz'];print('ok',m['file'])"
+ln -sf "$(ls dataset-*.json.gz | sort | tail -1)" dataset.json.gz
+export EVE_DOGMA_DATASET=~/.local/share/eve-dogma/dataset.json.gz   # add to your shell profile
+
+# 3. check
+eve-dogma meta          # dataset sha256 / SDE build / counts
+```
+
+On macOS use `shasum -a 256 -c SHA256SUMS` (unsigned binary: `xattr -d com.apple.quarantine eve-dogma` if
+Gatekeeper blocks it). On Windows, unzip the archive, check it with `Get-FileHash`, and set
+`$env:EVE_DOGMA_DATASET` to the downloaded dataset. Without `gh`, take the files from
+<https://github.com/EX-CT/eve-sde-pipeline/releases/latest>.
+
+Dataset lookup order: `--dataset PATH`, then `$EVE_DOGMA_DATASET`, then `./dataset.json.gz`. The first run on
+a dataset parses it (about 100 ms) and writes a bincode cache to `$EVE_DOGMA_CACHE_DIR` (default
+`<tmp>/eve-dogma-cache`; point it at a persistent directory such as `~/.cache/eve-dogma` if your tmp is cleared
+at boot). Later runs load the cache in about 10 ms. The cache is keyed by the dataset contents and the
+executable, so upgrading either one rebuilds it once; `EVE_DOGMA_NO_CACHE=1` disables it.
+
+To build from source instead: `cargo install --git https://github.com/EX-CT/eve-dogma-rs --locked` (Rust stable).
+
 ## Quick start
 
 ```bash
