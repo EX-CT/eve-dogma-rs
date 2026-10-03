@@ -308,7 +308,7 @@ fn run<E: EvKey>(sources: &[Source], initial: &[(u32, f64)], r1: &[u32], r2: &[u
         k
     };
     let mut last_ev: Option<E> = None;
-    let mut exp_cache = [(0u64, 0.0f64, false); 64];
+    let mut exp_cache = [(0u64, 0.0f64, false); 256];
     // The pop order of a priority queue depends only on the set of entries (the order is total: seq is unique), so
     // the current event stays in the heap and is updated in place (one sift-down) unless something else must be
     // pushed first or it leaves the simulation.
@@ -334,7 +334,7 @@ fn run<E: EvKey>(sources: &[Source], initial: &[(u32, f64)], r1: &[u32], r2: &[u
             let x = (cap / cap_max).max(0.0).sqrt();
             // exp of a repeated argument (event times are periodic): exact memo on the argument's bits
             let arg = (t_last - t_now) / tau;
-            let slot = &mut exp_cache[(arg.to_bits() as usize ^ (arg.to_bits() >> 29) as usize) & 63];
+            let slot = &mut exp_cache[(arg.to_bits().wrapping_mul(0x9e37_79b9_7f4a_7c15) >> 56) as usize];
             let e = if slot.0 == arg.to_bits() && slot.2 { slot.1 } else {
                 let e = arg.exp();
                 *slot = (arg.to_bits(), e, true);
