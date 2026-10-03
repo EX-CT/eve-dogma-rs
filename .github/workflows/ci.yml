@@ -21,3 +21,30 @@ jobs:
         run: |
           ./target/release/eve-dogma meta
           ./target/release/eve-dogma eft tests/fits/exct_rifter.eft --calc --skills 5 > /dev/null
+  wasm:
+    # WebAssembly build (wasm32-wasip1) run under Node's WASI; its output must match the native build byte for byte
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip1
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Download dataset (latest SDE release of EX-CT/eve-sde-pipeline)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download -R EX-CT/eve-sde-pipeline --pattern 'dataset-*.json.gz'
+          mv dataset-*.json.gz dataset.json.gz
+      - run: cargo build --release --target wasm32-wasip1
+      - run: cargo build --release
+      - name: wasm calc == native calc
+        run: |
+          ./target/release/eve-dogma eft tests/fits/exct_rifter.eft > req.json
+          ./target/release/eve-dogma --dataset dataset.json.gz calc < req.json > native.json
+          node wasm/run.mjs dataset.json.gz calc < req.json > wasm.json
+          cmp native.json wasm.json
+          node wasm/run.mjs dataset.json.gz meta

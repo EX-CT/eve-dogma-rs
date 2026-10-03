@@ -1,5 +1,6 @@
 //! eve-dogma CLI — stateless: JSON FitRequest in, JSON FitStats out.
 
+#[cfg(not(target_arch = "wasm32"))]
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 use eve_dogma::{calc, eft, Dataset, FitRequest};

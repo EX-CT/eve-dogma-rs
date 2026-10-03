@@ -125,6 +125,22 @@ The same corpus is the shared bench `EX-CT/eve-dogma-bench`. 5 metrics are recor
 
 Dataset load: ~150 ms (once per process). Pyfa first calculation: ~390 ms.
 
+## WebAssembly (WASI)
+
+The same engine builds for `wasm32-wasip1`. The native-only mimalloc allocator is left out on wasm32, and the dataset
+cache is skipped (each process parses the dataset). The output is byte-identical to the native build: CI's `wasm` job
+checks this, and all 326 bench cases match locally.
+
+```sh
+rustup target add wasm32-wasip1
+cargo build --release --target wasm32-wasip1          # target/wasm32-wasip1/release/eve-dogma.wasm (~1.4 MB)
+node wasm/run.mjs dataset.json.gz calc < request.json # Node's built-in WASI, no extra tools
+wasmtime run --dir /path/to/data::/d target/wasm32-wasip1/release/eve-dogma.wasm --dataset /d/dataset.json.gz calc < request.json
+```
+
+All CLI commands (`calc`, `batch`, `serve-stdio`, `eft`, `search`, `type`, `meta`) work. In a browser the module runs
+through any WASI preview1 shim, with the dataset provided as a file in the shim's virtual filesystem.
+
 ## License
 
 LGPL-3.0-or-later (`LICENSE`, plus `LICENSE.GPL-3.0` which it incorporates). The RAH adaptation and the
