@@ -376,11 +376,12 @@ impl<'a> Fit<'a> {
             w_dps.add(&dps);
             let opt = g(i, "maxRange");
             let fo = g(i, "falloff");
+            // keys in sorted order (cheaper output sort)
             let mut w = jx!({
-                "module_index": self.items[i].req_index, "type_id": self.items[i].type_id,
-                "name": &ds.types[&self.items[i].type_id].name, "kind": kind,
-                "charge_type_id": self.items[i].charge.map(|c| self.items[c].type_id),
-                "volley": vol_spooled.json(), "dps": dps.json(), "cycle_time_ms": cyc,
+                "charge_type_id": self.items[i].charge.map(|c| self.items[c].type_id), "cycle_time_ms": cyc,
+                "dps": dps.json(), "kind": kind, "module_index": self.items[i].req_index,
+                "name": &ds.types[&self.items[i].type_id].name, "type_id": self.items[i].type_id,
+                "volley": vol_spooled.json(),
             });
             if kind == "turret" {
                 w.insert("optimal_m", jx!(opt));
@@ -445,9 +446,10 @@ impl<'a> Fit<'a> {
             let dps = v.scale(1000.0 / cyc);
             d_vol.add(&v);
             d_dps.add(&dps);
-            drone_out.push(jx!({"drone_index": self.items[i].req_index, "type_id": self.items[i].type_id, "name": &ds.types[&self.items[i].type_id].name, "count": n, "volley": v.json(), "dps": dps.json(),
-                "optimal_m": g(i, "maxRange"), "falloff_m": g(i, "falloff"), "tracking": g(i, "trackingSpeed"),
-                "max_velocity": g(i, "maxVelocity"), "signature_radius": g(i, "signatureRadius")}));
+            drone_out.push(jx!({"count": n, "dps": dps.json(), "drone_index": self.items[i].req_index, "falloff_m": g(i, "falloff"),
+                "max_velocity": g(i, "maxVelocity"), "name": &ds.types[&self.items[i].type_id].name, "optimal_m": g(i, "maxRange"),
+                "signature_radius": g(i, "signatureRadius"), "tracking": g(i, "trackingSpeed"), "type_id": self.items[i].type_id,
+                "volley": v.json()}));
         }
         let mut f_vol = Dmg::default();
         let mut f_dps = Dmg::default();
@@ -612,9 +614,9 @@ impl<'a> Fit<'a> {
             }
             let cyc_raw = self.raw_cycle_ms(i, &id);
             let full = cyc_raw + self.get(i, id.reactivation);
-            let mut row = jx!({"module_index": self.items[i].req_index, "type_id": self.items[i].type_id,
-                "name": &ds.types[&self.items[i].type_id].name, "slot": J::ser(&self.items[i].slot), "state": J::ser(&self.items[i].state),
-                "cpu": self.get(i, id.cpu), "power": self.get(i, id.power)});
+            let mut row = jx!({"cpu": self.get(i, id.cpu), "module_index": self.items[i].req_index,
+                "name": &ds.types[&self.items[i].type_id].name, "power": self.get(i, id.power),
+                "slot": J::ser(&self.items[i].slot), "state": J::ser(&self.items[i].state), "type_id": self.items[i].type_id});
             if cyc_raw > 0.0 {
                 row.insert("cycle_time_ms", jx!(cyc_raw));
             }
