@@ -177,6 +177,139 @@ impl<T> Dense<T> {
     }
 }
 
+/// Attribute / effect table for the binary cache: each entry is its own bincode record, decoded on first lookup,
+/// with the names kept in one separate blob (for the name indexes) so a cached cold start decodes only what it uses.
+pub struct Table<T> {
+    /// ids, ascending
+    ids: Vec<u32>,
+    pos: TypePos,
+    raw: Vec<u8>,
+    offs: Vec<u32>,
+    names: String,
+    name_offs: Vec<u32>,
+    cells: Box<[std::sync::OnceLock<T>]>,
+}
+
+fn type_pos(ids: &[u32]) -> TypePos {
+    let max = ids.last().copied().unwrap_or(0) as usize;
+    if max <= 1 << 22 {
+        let mut d = vec![0u32; max + 1];
+        for (i, &id) in ids.iter().enumerate() {
+            d[id as usize] = i as u32 + 1;
+        }
+        TypePos::Dense(d)
+    } else {
+        TypePos::Map(ids.iter().enumerate().map(|(i, &id)| (id, i as u32)).collect())
+    }
+}
+
+impl<T: Serialize + for<'de> Deserialize<'de>> Table<T> {
+    fn from_dense(d: Dense<T>, name: impl Fn(&T) -> &str) -> Table<T> {
+        let (mut ids, mut raw, mut offs, mut names, mut name_offs, mut cells) = (Vec::new(), Vec::new(), vec![0u32], String::new(), vec![0u32], Vec::new());
+        for (i, x) in d.v.into_iter().enumerate() {
+            let Some(t) = x else { continue };
+            ids.push(i as u32);
+            raw.extend_from_slice(&bincode::serialize(&t).expect("serialize table entry"));
+            offs.push(raw.len() as u32);
+            names.push_str(name(&t));
+            name_offs.push(names.len() as u32);
+            cells.push(std::sync::OnceLock::from(t));
+        }
+        let pos = type_pos(&ids);
+        Table { ids, pos, raw, offs, names, name_offs, cells: cells.into_boxed_slice() }
+    }
+
+    #[inline]
+    fn index(&self, id: u32) -> Option<usize> {
+        match &self.pos {
+            TypePos::Dense(d) => match d.get(id as usize) {
+                Some(&k) if k > 0 => Some(k as usize - 1),
+                _ => None,
+            },
+            TypePos::Map(m) => m.get(&id).map(|&k| k as usize),
+        }
+    }
+
+    fn at(&self, i: usize) -> &T {
+        self.cells[i].get_or_init(|| {
+            let rec = &self.raw[self.offs[i] as usize..self.offs[i + 1] as usize];
+            match bincode::deserialize::<T>(rec) {
+                Ok(t) => t,
+                Err(_) => panic!("corrupt dataset cache entry {} (delete the eve-dogma cache directory)", self.ids[i]),
+            }
+        })
+    }
+
+    #[inline]
+    pub fn get(&self, id: &u32) -> Option<&T> {
+        self.index(*id).map(|i| self.at(i))
+    }
+
+    pub fn contains_key(&self, id: &u32) -> bool {
+        self.index(*id).is_some()
+    }
+
+    pub fn len(&self) -> usize {
+        self.ids.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.ids.is_empty()
+    }
+
+    /// all entries in ascending id order (decodes every record)
+    pub fn iter(&self) -> impl Iterator<Item = (u32, &T)> {
+        self.ids.iter().enumerate().map(move |(i, &id)| (id, self.at(i)))
+    }
+
+    fn name_at(&self, i: usize) -> &str {
+        self.names.get(self.name_offs[i] as usize..self.name_offs[i + 1] as usize).unwrap_or("")
+    }
+
+    /// name of entry `id` without decoding it
+    pub fn name(&self, id: u32) -> Option<&str> {
+        self.index(id).map(|i| self.name_at(i))
+    }
+
+    /// (id, name) in ascending id order, without decoding entries
+    pub fn names(&self) -> impl Iterator<Item = (u32, &str)> {
+        self.ids.iter().enumerate().map(move |(i, &id)| (id, self.name_at(i)))
+    }
+}
+
+fn u32s_bytes(v: &[u32]) -> RawBytes {
+    RawBytes(v.iter().flat_map(|x| x.to_le_bytes()).collect())
+}
+
+fn bytes_u32s(b: &[u8]) -> Option<Vec<u32>> {
+    if b.len() % 4 != 0 {
+        return None;
+    }
+    Some(b.chunks_exact(4).map(|c| u32::from_le_bytes([c[0], c[1], c[2], c[3]])).collect())
+}
+
+impl<T> Serialize for Table<T> {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        (u32s_bytes(&self.ids), u32s_bytes(&self.offs), RawBytes(self.raw.clone()), &self.names, u32s_bytes(&self.name_offs)).serialize(s)
+    }
+}
+
+impl<'de, T> Deserialize<'de> for Table<T> {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        use serde::de::Error;
+        let (ids, offs, raw, names, name_offs) = <(RawBytes, RawBytes, RawBytes, String, RawBytes)>::deserialize(d)?;
+        let bad = || D::Error::custom("bad table");
+        let (ids, offs, raw, name_offs) = (bytes_u32s(&ids.0).ok_or_else(bad)?, bytes_u32s(&offs.0).ok_or_else(bad)?, raw.0, bytes_u32s(&name_offs.0).ok_or_else(bad)?);
+        let ok = |o: &[u32], len: usize| o.len() == ids.len() + 1 && o.first() == Some(&0) && o.last().map(|&x| x as usize) == Some(len) && o.windows(2).all(|w| w[0] <= w[1]);
+        if !ok(&offs, raw.len()) || !ok(&name_offs, names.len()) || ids.windows(2).any(|w| w[0] >= w[1]) {
+            return Err(bad());
+        }
+        let cells = (0..ids.len()).map(|_| std::sync::OnceLock::new()).collect();
+        let pos = type_pos(&ids);
+        Ok(Table { ids, pos, raw, offs, names, name_offs, cells })
+    }
+}
+
 /// name -> id without owning the names: 64-bit name hash -> id, the name checked against the owner on lookup; ids
 /// whose different name collides on the hash go to `extra` (scanned linearly)
 #[derive(Default)]
@@ -519,7 +652,7 @@ pub struct Dataset {
     /// category id -> English name
     pub categories: FxHashMap<u32, String>,
     pub attrs: Dense<AttrInfo>,
-    pub effects: Dense<EffectInfo>,
+    pub effects: Table<EffectInfo>,
     pub dbuffs: FxHashMap<u32, DbuffInfo>,
     pub mutaplasmids: FxHashMap<u32, MutaInfo>,
     /// Chinese type names as one "id\tname\n" blob sorted by id: one allocation to load from the binary cache
@@ -857,7 +990,7 @@ impl Dataset {
             groups,
             categories,
             attrs,
-            effects,
+            effects: Table::from_dense(effects, |e: &EffectInfo| e.name.as_str()),
             dbuffs,
             mutaplasmids,
             names_zh_raw,
@@ -900,8 +1033,8 @@ impl Dataset {
     }
     /// effect id by name (0 if unknown; for a duplicated name the lowest id)
     pub fn effect_id(&self, name: &str) -> u32 {
-        let names = |id: u32| self.effects.get(&id).map(|e| e.name.as_str());
-        self.effect_by_name.get_or_init(|| NameIndex::build(self.effects.iter().map(|(id, e)| (id, e.name.as_str())), names)).find(name, names)
+        let names = |id: u32| self.effects.name(id);
+        self.effect_by_name.get_or_init(|| NameIndex::build(self.effects.names(), names)).find(name, names)
     }
     /// Chinese name of a type, if the dataset has one
     pub fn name_zh(&self, id: u32) -> Option<&str> {
