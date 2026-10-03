@@ -1,0 +1,97 @@
+name: release
+# On a pushed tag v*: build the eve-dogma CLI for 5 targets, attach the archives + SHA256SUMS to the
+# GitHub release of that tag (created as a draft-free release if it does not exist yet).
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'existing tag to (re)build and upload assets for'
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
+jobs:
+  build:
+    name: build ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-x86_64,   os: ubuntu-22.04,     target: x86_64-unknown-linux-gnu }
+          - { name: linux-aarch64,  os: ubuntu-22.04-arm, target: aarch64-unknown-linux-gnu }
+          - { name: macos-x86_64,   os: macos-14,         target: x86_64-apple-darwin }
+          - { name: macos-arm64,    os: macos-14,         target: aarch64-apple-darwin }
+          - { name: windows-x86_64, os: windows-2022,     target: x86_64-pc-windows-msvc }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - name: Build
+        run: cargo build --release --locked --target ${{ matrix.target }}
+      - name: Smoke (native targets)
+        if: matrix.target != 'x86_64-apple-darwin'
+        shell: bash
+        run: ./target/${{ matrix.target }}/release/eve-dogma help
+      - name: Package
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+          ASSET: eve-dogma-${{ env.TAG }}-${{ matrix.name }}
+        run: |
+          set -euo pipefail
+          mkdir -p "dist/$ASSET"
+          bin=eve-dogma
+          case "$TARGET" in *windows*) bin=eve-dogma.exe ;; esac
+          cp "target/$TARGET/release/$bin" "dist/$ASSET/"
+          cp README.md LICENSE LICENSE.GPL-3.0 "dist/$ASSET/"
+          cd dist
+          case "$TARGET" in
+            *windows*) 7z a -tzip "$ASSET.zip" "$ASSET" > /dev/null ;;
+            *) tar -czf "$ASSET.tar.gz" "$ASSET" ;;
+          esac
+          rm -rf "$ASSET"
+          ls -l
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: SHA256SUMS
+        working-directory: dist
+        run: |
+          sha256sum -- * > SHA256SUMS
+          cat SHA256SUMS
+      - name: Upload to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "$TAG" -R "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release create "$TAG" -R "$GITHUB_REPOSITORY" --verify-tag --title "eve-dogma $TAG" --generate-notes
+          fi
+          gh release upload "$TAG" -R "$GITHUB_REPOSITORY" --clobber dist/*
