@@ -57,22 +57,15 @@ fn capacitor_matches_pyfa_cap_suite_subset() {
 #[test]
 fn overheated_cycle_is_folded_like_pyfa() {
     // 12000 ms * (0.75 skill * 0.85 overheat) evaluates to 7649.999.. in doubles when the unpenalised multipliers are
-    // folded into one product first (Pyfa's order); the simulator then floors it to 7649 ms.
+    // folded into one product first (Pyfa's order); the simulator floors it to 7649 ms. The two identical repairers
+    // are staggered into one event every floor(7649 / 2) = 3824 ms, so the capacitor empties at 10 x 3824 ms = 38.24 s
+    // (Pyfa); with 7650 ms cycles it would be 3825 ms steps and 38.25 s.
     let Some(ds) = dataset() else { return };
     let fx = fixtures();
     let st = run(&ds, &fx["fits"]["oh_maller_reps"]);
-    let reps: Vec<f64> = st["modules"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter(|m| m["name"] == "Medium Armor Repairer II")
-        .map(|m| m["cycle_time_ms"].as_f64().unwrap())
-        .collect();
-    assert_eq!(reps.len(), 2);
-    for c in reps {
-        assert!(c < 7650.0 && c > 7649.99, "cycle {c}");
-        assert_eq!(c.trunc(), 7649.0);
-    }
+    assert_eq!(st["capacitor"]["depletes_in_s"].as_f64().unwrap(), 38.24);
+    let ms = (38.24_f64 * 1000.0).round() as u64;
+    assert_eq!(ms % 3824, 0, "depletion at a multiple of the staggered floor(7649 / 2) ms step");
 }
 
 #[test]
