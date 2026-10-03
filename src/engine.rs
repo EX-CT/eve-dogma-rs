@@ -10,6 +10,7 @@ const EXEMPT_CATEGORIES: [u32; 6] = [6, 8, 16, 20, 32, 65];
 pub const REQ_SKILL_ATTRS: [u32; 6] = [182, 183, 184, 1285, 1289, 1290];
 pub const ATTR_SKILL_LEVEL: u32 = 280;
 const EFFECT_SKILL_EFFECT: u32 = 132;
+const SKILL_ATTR_CAP: usize = 3;
 /// em/explosive/kinetic/thermal DamageResonance (hull)
 const HULL_RESONANCES: [u32; 4] = [113, 111, 109, 110];
 /// On structures (category 65) pilot skills do not affect the structure, except these effects
@@ -440,7 +441,12 @@ impl<'a> Fit<'a> {
             active_count: 0,
             tattrs: &t.attrs,
             // modules / charges / drones typically get up to ~28 modified attributes: avoid the rehash steps
-            attrs: if matches!(kind, Kind::Module | Kind::Charge | Kind::Drone) { FxHashMap::with_capacity_and_hasher(28, Default::default()) } else { FxHashMap::default() },
+            attrs: match kind {
+                Kind::Module | Kind::Charge | Kind::Drone => FxHashMap::with_capacity_and_hasher(28, Default::default()),
+                // skill level plus the skill's self-modifiers
+                Kind::Skill => FxHashMap::with_capacity_and_hasher(SKILL_ATTR_CAP, Default::default()),
+                _ => FxHashMap::default(),
+            },
             req_skills: std::borrow::Cow::Borrowed(&t.req_skills),
             effects: std::borrow::Cow::Borrowed(&t.effects),
             fighter_abilities: None,
