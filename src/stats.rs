@@ -383,9 +383,9 @@ impl<'a> Fit<'a> {
                 "volley": vol_spooled.json(), "dps": dps.json(), "cycle_time_ms": cyc,
             });
             if kind == "turret" {
-                w["optimal_m"] = jx!(opt);
-                w["falloff_m"] = jx!(fo);
-                w["tracking"] = jx!(g(i, "trackingSpeed"));
+                w.insert("optimal_m", jx!(opt));
+                w.insert("falloff_m", jx!(fo));
+                w.insert("tracking", jx!(g(i, "trackingSpeed")));
             } else if kind == "missile" {
                 if let Some(c) = self.items[i].charge {
                     // Pyfa missileMaxRangeData: flight time + ship radius bonus, acceleration phase,
@@ -412,17 +412,17 @@ impl<'a> Fit<'a> {
                         lr = (lr - radius).max(0.0);
                         hr = (hr - radius).max(0.0);
                         let hc = ft - lt;
-                        w["range_m"] = jx!(lr * (1.0 - hc) + hr * hc);
+                        w.insert("range_m", jx!(lr * (1.0 - hc) + hr * hc));
                     }
-                    w["explosion_radius"] = jx!(g(c, "aoeCloudSize"));
-                    w["explosion_velocity"] = jx!(g(c, "aoeVelocity"));
+                    w.insert("explosion_radius", jx!(g(c, "aoeCloudSize")));
+                    w.insert("explosion_velocity", jx!(g(c, "aoeVelocity")));
                 }
             } else if kind == "smartbomb" {
-                w["range_m"] = jx!(g(i, "empFieldRange"));
+                w.insert("range_m", jx!(g(i, "empFieldRange")));
             }
             if sp > 0.0 {
-                w["spool_multiplier"] = jx!(1.0 + sp);
-                w["volley_unspooled"] = base.json();
+                w.insert("spool_multiplier", jx!(1.0 + sp));
+                w.insert("volley_unspooled", base.json());
             }
             weapons.push(w);
         }
@@ -616,14 +616,14 @@ impl<'a> Fit<'a> {
                 "name": &ds.types[&self.items[i].type_id].name, "slot": J::ser(&self.items[i].slot), "state": J::ser(&self.items[i].state),
                 "cpu": self.get(i, id.cpu), "power": self.get(i, id.power)});
             if cyc_raw > 0.0 {
-                row["cycle_time_ms"] = jx!(cyc_raw);
+                row.insert("cycle_time_ms", jx!(cyc_raw));
             }
             if active(i) && cap_need != 0.0 && full > 0.0 {
                 // Pyfa forces reload into capacitor boosters' average cycle (module.forceReload)
                 let avg = self.avg_cycle_ms(i, &id, factor_reload || is_inj);
                 let use_ = if avg > 0.0 { cap_need / (avg / 1000.0) } else { 0.0 };
                 if use_ > 0.0 { cap_used += use_ } else { cap_added -= use_ }
-                row["cap_use_gj_s"] = jx!(use_);
+                row.insert("cap_use_gj_s", jx!(use_));
                 drains.push(Drain {
                     duration: full.trunc(),
                     cap_need,
@@ -657,20 +657,20 @@ impl<'a> Fit<'a> {
         let mut capj = jx!({"capacity": cap, "recharge_time_s": rr / 1000.0, "peak_recharge_gj_s": peak,
             "use_gj_s": cap_used, "injected_gj_s": cap_added, "delta_gj_s": peak + cap_added - cap_used});
         if drains.is_empty() {
-            capj["stable"] = jx!(true);
-            capj["stable_percent"] = jx!(100.0);
+            capj.insert("stable", jx!(true));
+            capj.insert("stable_percent", jx!(100.0));
         } else {
             let o = &req.options.cap_sim;
             let r = capsim::simulate(cap, rr, &drains, 1.0, o.reload || factor_reload, true, o.max_time_s.unwrap_or(6.0 * 3600.0) * 1000.0);
             let st = (r.stable_low + r.stable_high) / 2.0;
-            capj["stable"] = jx!(r.stable && st > 0.0);
+            capj.insert("stable", jx!(r.stable && st > 0.0));
             if r.stable && st > 0.0 {
-                capj["stable_percent"] = jx!((st * 100.0).min(100.0));
+                capj.insert("stable_percent", jx!((st * 100.0).min(100.0)));
             } else {
-                capj["depletes_in_s"] = jx!(r.t_s);
+                capj.insert("depletes_in_s", jx!(r.t_s));
             }
-            capj["eve_stable_percent"] = jx!(r.eve_stable * 100.0);
-            capj["sim_iterations"] = jx!(r.iterations);
+            capj.insert("eve_stable_percent", jx!(r.eve_stable * 100.0));
+            capj.insert("sim_iterations", jx!(r.iterations));
         }
 
         // ---------------- sustainable tank (Pyfa Fit.sustainableTank, eos LGPL): when the capacitor is not
@@ -754,9 +754,9 @@ impl<'a> Fit<'a> {
                     sus[l] += adj[l];
                 }
             }
-            defense["tank"]["sustained"] = jx!({"armor_repair": sus[1], "hull_repair": sus[2], "passive_shield": passive, "shield_repair": sus[0]});
-            defense["tank"]["sustained_effective"] = jx!({"armor_repair": effectivify(sus[1], ra), "hull_repair": effectivify(sus[2], rh),
-                "passive_shield": effectivify(passive, rs), "shield_repair": effectivify(sus[0], rs)});
+            defense["tank"].insert("sustained", jx!({"armor_repair": sus[1], "hull_repair": sus[2], "passive_shield": passive, "shield_repair": sus[0]}));
+            defense["tank"].insert("sustained_effective", jx!({"armor_repair": effectivify(sus[1], ra), "hull_repair": effectivify(sus[2], rh),
+                "passive_shield": effectivify(passive, rs), "shield_repair": effectivify(sus[0], rs)}));
         }
 
         // ---------------- navigation
