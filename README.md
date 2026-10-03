@@ -19,8 +19,10 @@ design docs: [EX-CT/eve-fit-docs](https://github.com/EX-CT/eve-fit-docs)).
 Prebuilt CLI binaries are attached to every `v*` release of this repository (built by
 `.github/workflows/release.yml`): `eve-dogma-<tag>-<platform>.tar.gz` for `linux-x86_64`, `linux-aarch64`,
 `macos-x86_64`, `macos-arm64`, and `eve-dogma-<tag>-windows-x86_64.zip`. Each archive holds the `eve-dogma`
-binary, this README and the licenses; `SHA256SUMS` covers all archives. Linux builds need glibc 2.35+
-(Ubuntu 22.04 or newer); there are no other runtime dependencies.
+binary, this README and the licenses; `SHA256SUMS` covers all archives. Linux builds need glibc 2.34+
+(Ubuntu 22.04, Debian 12, RHEL 9 or newer); there are no other runtime dependencies. Maintainers: a manual run
+of the `release` workflow (default `dry_run`) builds and packages all five targets as run artifacts without
+touching any release; pushing a `v*` tag builds them again and uploads them.
 
 ```bash
 # 1. binary (pick your platform; with the GitHub CLI, or download the same files from the release page)
