@@ -90,7 +90,9 @@ pub struct TypeInfo {
     pub meta_group: Option<u32>,
     pub meta_level: Option<i32>,
     pub variation_parent: Option<u32>,
+    #[serde(with = "packed_attrs")]
     pub attrs: Vec<(u32, f64)>,
+    #[serde(with = "packed_effects")]
     pub effects: Vec<(u32, bool)>,
     /// non-zero requiredSkill1..6 values (computed at load)
     pub req_skills: Vec<u32>,
@@ -175,6 +177,53 @@ impl<T> Dense<T> {
         self.v.iter().enumerate().filter_map(|(i, x)| x.as_ref().map(|t| (i as u32, t)))
     }
 }
+
+/// (de)serialize a small-tuple Vec as one little-endian byte block: one bounds check per element instead of a serde
+/// visit per field (per-type attribute lists are most of the binary cache)
+macro_rules! packed_vec {
+    ($m:ident, $t:ty, $w:expr, |$x:ident, $o:ident| $enc:expr, |$c:ident| $dec:expr) => {
+        mod $m {
+            use serde::{Deserializer, Serializer};
+            pub fn serialize<S: Serializer>(v: &[$t], s: S) -> Result<S::Ok, S::Error> {
+                let mut $o: Vec<u8> = Vec::with_capacity(v.len() * $w);
+                for $x in v {
+                    $enc;
+                }
+                s.serialize_bytes(&$o)
+            }
+            pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<$t>, D::Error> {
+                struct V;
+                impl<'de> serde::de::Visitor<'de> for V {
+                    type Value = Vec<$t>;
+                    fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                        f.write_str("packed bytes")
+                    }
+                    fn visit_bytes<E: serde::de::Error>(self, b: &[u8]) -> Result<Vec<$t>, E> {
+                        if b.len() % $w != 0 {
+                            return Err(E::custom("packed length"));
+                        }
+                        Ok(b.chunks_exact($w).map(|$c| $dec).collect())
+                    }
+                    fn visit_borrowed_bytes<E: serde::de::Error>(self, b: &'de [u8]) -> Result<Vec<$t>, E> {
+                        self.visit_bytes(b)
+                    }
+                    fn visit_byte_buf<E: serde::de::Error>(self, b: Vec<u8>) -> Result<Vec<$t>, E> {
+                        self.visit_bytes(&b)
+                    }
+                }
+                d.deserialize_bytes(V)
+            }
+        }
+    };
+}
+packed_vec!(packed_attrs, (u32, f64), 12, |x, o| {
+    o.extend_from_slice(&x.0.to_le_bytes());
+    o.extend_from_slice(&x.1.to_le_bytes())
+}, |c| (u32::from_le_bytes([c[0], c[1], c[2], c[3]]), f64::from_le_bytes([c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11]])));
+packed_vec!(packed_effects, (u32, bool), 5, |x, o| {
+    o.extend_from_slice(&x.0.to_le_bytes());
+    o.push(x.1 as u8)
+}, |c| (u32::from_le_bytes([c[0], c[1], c[2], c[3]]), c[4] != 0));
 
 /// bytes (de)serialized as one block: bincode copies them without per-element visits or UTF-8 validation
 #[derive(Default)]
