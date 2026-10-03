@@ -654,6 +654,22 @@ impl<'a> Fit<'a> {
                     if need > 0.0 { cap_used += need / (dur.trunc() / 1000.0) } else { cap_added -= need / (dur.trunc() / 1000.0) }
                     drains.push(Drain { duration: dur.trunc(), cap_need: need, clip_size: 0, reload_ms: 0.0, is_injector: false, disable_stagger: false });
                 }
+            } else if let crate::engine::ProjSpecial::BombDrain { launcher, charge } = *ps {
+                // void bombs (Pyfa: projected launcher handler + fit.addDrain): the charge's neutralization every
+                // launcher speed + reactivation delay; no resistance or range factor; the signature-resolution
+                // factor uses the launcher's (normally absent) attribute, as Pyfa passes the launcher as the source
+                let delay = self.get(launcher, a("moduleReactivationDelay"));
+                let speed = self.get(launcher, a("speed"));
+                let mut need = self.get(charge, a("energyNeutralizerAmount"));
+                let sres = g(launcher, "energyNeutralizerSignatureResolution");
+                if sres != 0.0 {
+                    need *= (sig_now / sres).min(1.0);
+                }
+                let dur = speed + delay;
+                if delay != 0.0 && speed != 0.0 && need != 0.0 && dur > 0.0 {
+                    cap_used += need / (dur.trunc() / 1000.0);
+                    drains.push(Drain { duration: dur.trunc(), cap_need: need, clip_size: 0, reload_ms: 0.0, is_injector: false, disable_stagger: false });
+                }
             }
         }
         let mut capj = jx!({"capacity": cap, "recharge_time_s": rr / 1000.0, "peak_recharge_gj_s": peak,

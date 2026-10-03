@@ -1,0 +1,850 @@
+{
+ "fits": {
+  "base_maller": {
+   "description": "cruiser AB + dual rep + lasers",
+   "request": {
+    "character": {
+     "skills": {
+      "default_level": 5,
+      "levels": {}
+     }
+    },
+    "drones": [],
+    "implants": [],
+    "modules": [
+     {
+      "charge_type_id": null,
+      "slot": "mid",
+      "state": "active",
+      "type_id": 12058
+     },
+     {
+      "charge_type_id": null,
+      "slot": "mid",
+      "state": "active",
+      "type_id": 3244
+     },
+     {
+      "charge_type_id": null,
+      "slot": "low",
+      "state": "active",
+      "type_id": 3530
+     },
+     {
+      "charge_type_id": null,
+      "slot": "low",
+      "state": "active",
+      "type_id": 3530
+     },
+     {
+      "charge_type_id": null,
+      "slot": "low",
+      "state": "active",
+      "type_id": 11269
+     },
+     {
+      "charge_type_id": 12818,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3520
+     },
+     {
+      "charge_type_id": 12818,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3520
+     },
+     {
+      "charge_type_id": 12818,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3520
+     },
+     {
+      "charge_type_id": 12818,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3520
+     }
+    ],
+    "projected": [],
+    "ship": {
+     "type_id": 624
+    }
+   },
+   "values": {
+    "capacity": 2031.25,
+    "delta_gj_s": -39.07398873527907,
+    "depletes_in_s": 45.0,
+    "injected_gj_s": 0.0,
+    "peak_recharge_gj_s": 14.560931899641577,
+    "recharge_time_s": 348.75,
+    "stable": false,
+    "use_gj_s": 53.63492063492065
+   }
+  },
+  "hard_three_void_bombs": {
+   "description": "three identical incoming void bombs (grouped and staggered like local modules)",
+   "request": {
+    "character": {
+     "skills": {
+      "default_level": 5,
+      "levels": {}
+     }
+    },
+    "drones": [],
+    "implants": [],
+    "modules": [
+     {
+      "charge_type_id": null,
+      "slot": "mid",
+      "state": "active",
+      "type_id": 12068
+     },
+     {
+      "charge_type_id": null,
+      "slot": "mid",
+      "state": "active",
+      "type_id": 1978
+     },
+     {
+      "charge_type_id": null,
+      "slot": "mid",
+      "state": "active",
+      "type_id": 1952
+     },
+     {
+      "charge_type_id": null,
+      "slot": "low",
+      "state": "active",
+      "type_id": 3540
+     },
+     {
+      "charge_type_id": null,
+      "slot": "low",
+      "state": "active",
+      "type_id": 3540
+     },
+     {
+      "charge_type_id": 262,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3057
+     },
+     {
+      "charge_type_id": 262,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3057
+     },
+     {
+      "charge_type_id": 262,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3057
+     },
+     {
+      "charge_type_id": 262,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3057
+     },
+     {
+      "charge_type_id": 262,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3057
+     },
+     {
+      "charge_type_id": 262,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3057
+     },
+     {
+      "charge_type_id": 262,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3057
+     },
+     {
+      "charge_type_id": 262,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3057
+     }
+    ],
+    "projected": [
+     {
+      "amount": 3,
+      "distance_m": 10000,
+      "kind": "module",
+      "module": {
+       "charge_type_id": 27924,
+       "type_id": 27914
+      }
+     }
+    ],
+    "ship": {
+     "type_id": 642
+    }
+   },
+   "values": {
+    "capacity": 8750.0,
+    "delta_gj_s": -106.62343604108311,
+    "depletes_in_s": 60.0,
+    "injected_gj_s": 0.0,
+    "peak_recharge_gj_s": 29.166666666666668,
+    "recharge_time_s": 750.0,
+    "stable": false,
+    "use_gj_s": 135.79010270774978
+   }
+  },
+  "hard_void_bomb_bs": {
+   "description": "void bomb on a battleship (survives the first hit)",
+   "request": {
+    "character": {
+     "skills": {
+      "default_level": 5,
+      "levels": {}
+     }
+    },
+    "drones": [],
+    "implants": [],
+    "modules": [
+     {
+      "charge_type_id": null,
+      "slot": "mid",
+      "state": "active",
+      "type_id": 12068
+     },
+     {
+      "charge_type_id": null,
+      "slot": "mid",
+      "state": "active",
+      "type_id": 1978
+     },
+     {
+      "charge_type_id": null,
+      "slot": "mid",
+      "state": "active",
+      "type_id": 1952
+     },
+     {
+      "charge_type_id": null,
+      "slot": "low",
+      "state": "active",
+      "type_id": 3540
+     },
+     {
+      "charge_type_id": null,
+      "slot": "low",
+      "state": "active",
+      "type_id": 3540
+     },
+     {
+      "charge_type_id": 262,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3057
+     },
+     {
+      "charge_type_id": 262,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3057
+     },
+     {
+      "charge_type_id": 262,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3057
+     },
+     {
+      "charge_type_id": 262,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3057
+     },
+     {
+      "charge_type_id": 262,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3057
+     },
+     {
+      "charge_type_id": 262,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3057
+     },
+     {
+      "charge_type_id": 262,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3057
+     },
+     {
+      "charge_type_id": 262,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3057
+     }
+    ],
+    "projected": [
+     {
+      "amount": 1,
+      "distance_m": 10000,
+      "kind": "module",
+      "module": {
+       "charge_type_id": 27924,
+       "type_id": 27914
+      }
+     }
+    ],
+    "ship": {
+     "type_id": 642
+    }
+   },
+   "values": {
+    "capacity": 8750.0,
+    "delta_gj_s": -85.4469654528478,
+    "depletes_in_s": 84.375,
+    "injected_gj_s": 0.0,
+    "peak_recharge_gj_s": 29.166666666666668,
+    "recharge_time_s": 750.0,
+    "stable": false,
+    "use_gj_s": 114.61363211951448
+   }
+  },
+  "in_void_bomb": {
+   "description": "void bomb (bomb launcher cycle + reactivation)",
+   "request": {
+    "character": {
+     "skills": {
+      "default_level": 5,
+      "levels": {}
+     }
+    },
+    "drones": [],
+    "implants": [],
+    "modules": [
+     {
+      "charge_type_id": null,
+      "slot": "mid",
+      "state": "active",
+      "type_id": 12058
+     },
+     {
+      "charge_type_id": null,
+      "slot": "mid",
+      "state": "active",
+      "type_id": 3244
+     },
+     {
+      "charge_type_id": null,
+      "slot": "low",
+      "state": "active",
+      "type_id": 3530
+     },
+     {
+      "charge_type_id": null,
+      "slot": "low",
+      "state": "active",
+      "type_id": 3530
+     },
+     {
+      "charge_type_id": null,
+      "slot": "low",
+      "state": "active",
+      "type_id": 11269
+     },
+     {
+      "charge_type_id": 12818,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3520
+     },
+     {
+      "charge_type_id": 12818,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3520
+     },
+     {
+      "charge_type_id": 12818,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3520
+     },
+     {
+      "charge_type_id": 12818,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3520
+     }
+    ],
+    "projected": [
+     {
+      "amount": 1,
+      "distance_m": 10000,
+      "kind": "module",
+      "module": {
+       "charge_type_id": 27924,
+       "type_id": 27914
+      }
+     }
+    ],
+    "ship": {
+     "type_id": 624
+    }
+   },
+   "values": {
+    "capacity": 2031.25,
+    "delta_gj_s": -49.662224029396725,
+    "depletes_in_s": 0.0,
+    "injected_gj_s": 0.0,
+    "peak_recharge_gj_s": 14.560931899641577,
+    "recharge_time_s": 348.75,
+    "stable": false,
+    "use_gj_s": 64.2231559290383
+   }
+  },
+  "oh_maller_all": {
+   "description": "every module overheated",
+   "request": {
+    "character": {
+     "skills": {
+      "default_level": 5,
+      "levels": {}
+     }
+    },
+    "drones": [],
+    "implants": [],
+    "modules": [
+     {
+      "charge_type_id": null,
+      "slot": "mid",
+      "state": "overheated",
+      "type_id": 12058
+     },
+     {
+      "charge_type_id": null,
+      "slot": "mid",
+      "state": "overheated",
+      "type_id": 3244
+     },
+     {
+      "charge_type_id": null,
+      "slot": "low",
+      "state": "overheated",
+      "type_id": 3530
+     },
+     {
+      "charge_type_id": null,
+      "slot": "low",
+      "state": "overheated",
+      "type_id": 3530
+     },
+     {
+      "charge_type_id": null,
+      "slot": "low",
+      "state": "active",
+      "type_id": 11269
+     },
+     {
+      "charge_type_id": 12818,
+      "slot": "high",
+      "state": "overheated",
+      "type_id": 3520
+     },
+     {
+      "charge_type_id": 12818,
+      "slot": "high",
+      "state": "overheated",
+      "type_id": 3520
+     },
+     {
+      "charge_type_id": 12818,
+      "slot": "high",
+      "state": "overheated",
+      "type_id": 3520
+     },
+     {
+      "charge_type_id": 12818,
+      "slot": "high",
+      "state": "overheated",
+      "type_id": 3520
+     }
+    ],
+    "projected": [],
+    "ship": {
+     "type_id": 624
+    }
+   },
+   "values": {
+    "capacity": 2031.25,
+    "delta_gj_s": -45.348498539200634,
+    "depletes_in_s": 38.24,
+    "injected_gj_s": 0.0,
+    "peak_recharge_gj_s": 14.560931899641577,
+    "recharge_time_s": 348.75,
+    "stable": false,
+    "use_gj_s": 59.909430438842215
+   }
+  },
+  "oh_maller_reps": {
+   "description": "overheated armor repairers (cycle time to fractional ms, truncated)",
+   "request": {
+    "character": {
+     "skills": {
+      "default_level": 5,
+      "levels": {}
+     }
+    },
+    "drones": [],
+    "implants": [],
+    "modules": [
+     {
+      "charge_type_id": null,
+      "slot": "mid",
+      "state": "active",
+      "type_id": 12058
+     },
+     {
+      "charge_type_id": null,
+      "slot": "mid",
+      "state": "active",
+      "type_id": 3244
+     },
+     {
+      "charge_type_id": null,
+      "slot": "low",
+      "state": "overheated",
+      "type_id": 3530
+     },
+     {
+      "charge_type_id": null,
+      "slot": "low",
+      "state": "overheated",
+      "type_id": 3530
+     },
+     {
+      "charge_type_id": null,
+      "slot": "low",
+      "state": "active",
+      "type_id": 11269
+     },
+     {
+      "charge_type_id": 12818,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3520
+     },
+     {
+      "charge_type_id": 12818,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3520
+     },
+     {
+      "charge_type_id": 12818,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3520
+     },
+     {
+      "charge_type_id": 12818,
+      "slot": "high",
+      "state": "active",
+      "type_id": 3520
+     }
+    ],
+    "projected": [],
+    "ship": {
+     "type_id": 624
+    }
+   },
+   "values": {
+    "capacity": 2031.25,
+    "delta_gj_s": -45.348498539200634,
+    "depletes_in_s": 38.24,
+    "injected_gj_s": 0.0,
+    "peak_recharge_gj_s": 14.560931899641577,
+    "recharge_time_s": 348.75,
+    "stable": false,
+    "use_gj_s": 59.909430438842215
+   }
+  },
+  "oh_thorax_all": {
+   "description": "blasters, AB, web, scram, rep overheated",
+   "request": {
+    "character": {
+     "skills": {
+      "default_level": 5,
+      "levels": {}
+     }
+    },
+    "drones": [],
+    "implants": [],
+    "modules": [
+     {
+      "charge_type_id": null,
+      "slot": "mid",
+      "state": "overheated",
+      "type_id": 12058
+     },
+     {
+      "charge_type_id": null,
+      "slot": "mid",
+      "state": "overheated",
+      "type_id": 448
+     },
+     {
+      "charge_type_id": null,
+      "slot": "mid",
+      "state": "overheated",
+      "type_id": 527
+     },
+     {
+      "charge_type_id": null,
+      "slot": "low",
+      "state": "overheated",
+      "type_id": 3530
+     },
+     {
+      "charge_type_id": null,
+      "slot": "low",
+      "state": "active",
+      "type_id": 2048
+     },
+     {
+      "charge_type_id": 230,
+      "slot": "high",
+      "state": "overheated",
+      "type_id": 3130
+     },
+     {
+      "charge_type_id": 230,
+      "slot": "high",
+      "state": "overheated",
+      "type_id": 3130
+     },
+     {
+      "charge_type_id": 230,
+      "slot": "high",
+      "state": "overheated",
+      "type_id": 3130
+     },
+     {
+      "charge_type_id": 230,
+      "slot": "high",
+      "state": "overheated",
+      "type_id": 3130
+     },
+     {
+      "charge_type_id": 230,
+      "slot": "high",
+      "state": "overheated",
+      "type_id": 3130
+     }
+    ],
+    "projected": [],
+    "ship": {
+     "type_id": 627
+    }
+   },
+   "values": {
+    "capacity": 1812.5,
+    "delta_gj_s": -17.43180143108179,
+    "depletes_in_s": 84.139,
+    "injected_gj_s": 0.0,
+    "peak_recharge_gj_s": 11.686009026434558,
+    "recharge_time_s": 387.75,
+    "stable": false,
+    "use_gj_s": 29.11781045751635
+   }
+  },
+  "rl_thorax_oh": {
+   "description": "reload + overheat",
+   "request": {
+    "character": {
+     "skills": {
+      "default_level": 5,
+      "levels": {}
+     }
+    },
+    "drones": [],
+    "implants": [],
+    "modules": [
+     {
+      "charge_type_id": null,
+      "slot": "mid",
+      "state": "overheated",
+      "type_id": 12058
+     },
+     {
+      "charge_type_id": null,
+      "slot": "mid",
+      "state": "overheated",
+      "type_id": 448
+     },
+     {
+      "charge_type_id": null,
+      "slot": "mid",
+      "state": "overheated",
+      "type_id": 527
+     },
+     {
+      "charge_type_id": null,
+      "slot": "low",
+      "state": "overheated",
+      "type_id": 3530
+     },
+     {
+      "charge_type_id": null,
+      "slot": "low",
+      "state": "active",
+      "type_id": 2048
+     },
+     {
+      "charge_type_id": 230,
+      "slot": "high",
+      "state": "overheated",
+      "type_id": 3130
+     },
+     {
+      "charge_type_id": 230,
+      "slot": "high",
+      "state": "overheated",
+      "type_id": 3130
+     },
+     {
+      "charge_type_id": 230,
+      "slot": "high",
+      "state": "overheated",
+      "type_id": 3130
+     },
+     {
+      "charge_type_id": 230,
+      "slot": "high",
+      "state": "overheated",
+      "type_id": 3130
+     },
+     {
+      "charge_type_id": 230,
+      "slot": "high",
+      "state": "overheated",
+      "type_id": 3130
+     }
+    ],
+    "options": {
+     "factor_reload": true
+    },
+    "projected": [],
+    "ship": {
+     "type_id": 627
+    }
+   },
+   "values": {
+    "capacity": 1812.5,
+    "delta_gj_s": -17.392868046896684,
+    "depletes_in_s": 84.139,
+    "injected_gj_s": 0.0,
+    "peak_recharge_gj_s": 11.686009026434558,
+    "recharge_time_s": 387.75,
+    "stable": false,
+    "use_gj_s": 29.078877073331242
+   }
+  },
+  "spool_damavik_oh": {
+   "description": "light disintegrator, all overheated",
+   "request": {
+    "character": {
+     "skills": {
+      "default_level": 5,
+      "levels": {}
+     }
+    },
+    "drones": [],
+    "implants": [],
+    "modules": [
+     {
+      "charge_type_id": 47924,
+      "slot": "high",
+      "state": "overheated",
+      "type_id": 47914
+     },
+     {
+      "charge_type_id": null,
+      "slot": "mid",
+      "state": "overheated",
+      "type_id": 438
+     },
+     {
+      "charge_type_id": null,
+      "slot": "low",
+      "state": "overheated",
+      "type_id": 1183
+     }
+    ],
+    "projected": [],
+    "ship": {
+     "type_id": 47269
+    }
+   },
+   "values": {
+    "capacity": 500.0,
+    "delta_gj_s": -4.6869981325863685,
+    "depletes_in_s": 72.656,
+    "injected_gj_s": 0.0,
+    "peak_recharge_gj_s": 7.8431372549019605,
+    "recharge_time_s": 159.375,
+    "stable": false,
+    "use_gj_s": 12.530135387488329
+   }
+  },
+  "st_thorax_ab_rep_oh": {
+   "description": "AB + rep overheated",
+   "request": {
+    "character": {
+     "skills": {
+      "default_level": 5,
+      "levels": {}
+     }
+    },
+    "drones": [],
+    "implants": [],
+    "modules": [
+     {
+      "charge_type_id": null,
+      "slot": "mid",
+      "state": "overheated",
+      "type_id": 12058
+     },
+     {
+      "charge_type_id": null,
+      "slot": "low",
+      "state": "overheated",
+      "type_id": 3530
+     }
+    ],
+    "projected": [],
+    "ship": {
+     "type_id": 627
+    }
+   },
+   "values": {
+    "capacity": 1812.5,
+    "delta_gj_s": -12.229023653304004,
+    "depletes_in_s": 114.735,
+    "injected_gj_s": 0.0,
+    "peak_recharge_gj_s": 11.686009026434558,
+    "recharge_time_s": 387.75,
+    "stable": false,
+    "use_gj_s": 23.915032679738562
+   }
+  }
+ },
+ "source": "EX-CT/eve-dogma-bench branch cap-suite (cap/cases, cap/expected); values from Pyfa run as a black-box oracle"
+}

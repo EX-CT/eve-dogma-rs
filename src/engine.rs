@@ -196,6 +196,9 @@ pub enum ProjSpecial {
     Drain { item: usize, amount: u32, duration: u32, factor: f64, resist: u32, sign: f64 },
     /// ECM jam strength vs the target's strongest sensor type (Pyfa addProjectedEcm / jamChance)
     Ecm { item: usize, fighter: bool, factor: f64, resist: u32 },
+    /// projected bomb launcher with a void bomb: drains the charge's energyNeutralizerAmount every launcher
+    /// (speed + moduleReactivationDelay); no resistance, no range check (Pyfa's projected useMissiles handler)
+    BombDrain { launcher: usize, charge: usize },
 }
 
 #[derive(Debug)]
@@ -1101,6 +1104,14 @@ impl<'a> Fit<'a> {
         let qty = self.items[i].quantity.max(1) as f64;
         for &(eid, _) in effects.iter() {
             let Some(e) = ds.effects.get(&eid) else { continue };
+            if e.name == "useMissiles" && state >= State::Active {
+                // void bombs: Pyfa's projected launcher handler adds a capacitor drain for bomb launchers
+                let it = &self.items[i];
+                let bomb_launcher = ds.groups.get(&it.group).map(|g| g.name == "Missile Launcher Bomb").unwrap_or(false);
+                if let (true, Some(charge)) = (bomb_launcher, it.charge) {
+                    self.proj_special.push(ProjSpecial::BombDrain { launcher: i, charge });
+                }
+            }
             if e.category != 2 && e.category != 3 && e.name != "ECMBurstJammer" && !e.name.starts_with("doomsdayAOE") {
                 continue;
             }
@@ -1805,62 +1816,65 @@ impl<'a> Fit<'a> {
                 }
                 vals.push((m.op, m.penalized, self.src_value(&m.src)));
             }
-            for op in [-1, 0, 1, 2, 3, 4, 5, 6, 7] {
-                let mut any = false;
-                let mut pos: Vec<f64> = Vec::new();
-                let mut neg: Vec<f64> = Vec::new();
-                let mut assign: Option<f64> = None;
-                for &(o, pen, v) in &vals {
-                    if o != op {
-                        continue;
-                    }
-                    any = true;
-                    match op {
-                        -1 | 7 => {
-                            let hig = info.map(|i| i.high_is_good).unwrap_or(true);
-                            assign = Some(match assign {
-                                None => v,
-                                Some(c) => {
-                                    if hig {
-                                        c.max(v)
-                                    } else {
-                                        c.min(v)
-                                    }
-                                }
-                            });
-                        }
-                        2 => val += v,
-                        3 => val -= v,
-                        _ => {
-                            let m = match op {
-                                0 | 4 => v,
-                                1 | 5 => {
-                                    if v == 0.0 {
-                                        1.0
-                                    } else {
-                                        1.0 / v
-                                    }
-                                }
-                                6 => 1.0 + v / 100.0,
-                                _ => 1.0,
-                            };
-                            if pen {
-                                if m > 1.0 {
-                                    pos.push(m)
-                                } else if m < 1.0 {
-                                    neg.push(m)
-                                }
-                            } else {
-                                val *= m;
+            // Pyfa's ModifiedAttributeDict order, down to float rounding: preAssign > additions > ONE product of every
+            // unpenalised multiplier (in application order) > stacking-penalised chains (per operator) > postAssign.
+            // Folding the multipliers first matters for values that are later truncated: e.g. an overheated
+            // Medium Armor Repairer II: 12000 ms * (0.75 * 0.85) = 7649.999.. ms (not 7650), which the capacitor
+            // simulation floors to 7649 ms like Pyfa.
+            let hig = info.map(|i| i.high_is_good).unwrap_or(true);
+            let pick = |op: i32| {
+                let mut r: Option<f64> = None;
+                for &(o, _, v) in &vals {
+                    if o == op {
+                        r = Some(match r {
+                            None => v,
+                            Some(c) => {
+                                if hig { c.max(v) } else { c.min(v) }
                             }
-                        }
+                        });
                     }
                 }
-                if !any {
-                    continue;
+                r
+            };
+            if let Some(v) = pick(-1) {
+                val = v;
+            }
+            for &(o, _, v) in &vals {
+                match o {
+                    2 => val += v,
+                    3 => val -= v,
+                    _ => {}
                 }
-                if let Some(v) = assign {
-                    val = v;
+            }
+            let mult = |op: i32, v: f64| match op {
+                0 | 4 => v,
+                1 | 5 => {
+                    if v == 0.0 { 1.0 } else { 1.0 / v }
+                }
+                6 => 1.0 + v / 100.0,
+                _ => 1.0,
+            };
+            let mut prod = 1.0;
+            for &(o, pen, v) in &vals {
+                if !pen && matches!(o, 0 | 1 | 4 | 5 | 6) {
+                    prod *= mult(o, v);
+                }
+            }
+            val *= prod;
+            let mut pos: Vec<f64> = Vec::new();
+            let mut neg: Vec<f64> = Vec::new();
+            for op in [0, 1, 4, 5, 6] {
+                pos.clear();
+                neg.clear();
+                for &(o, pen, v) in &vals {
+                    if o == op && pen {
+                        let m = mult(op, v);
+                        if m > 1.0 {
+                            pos.push(m)
+                        } else if m < 1.0 {
+                            neg.push(m)
+                        }
+                    }
                 }
                 for list in [&mut pos, &mut neg] {
                     list.sort_by(|x, y| (y - 1.0).abs().partial_cmp(&(x - 1.0).abs()).unwrap_or(std::cmp::Ordering::Equal));
@@ -1868,6 +1882,9 @@ impl<'a> Fit<'a> {
                         val *= 1.0 + (m - 1.0) * stack_factor(i);
                     }
                 }
+            }
+            if let Some(v) = pick(7) {
+                val = v;
             }
         }
         if let Some(info) = info {
