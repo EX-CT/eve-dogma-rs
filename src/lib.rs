@@ -30,7 +30,16 @@ pub fn calc_json(ds: &Dataset, request_json: &str) -> String {
             Ok(fit) => return fit.compute_stats(&req).to_json(),
             Err(e) => json!({"error": {"code": e.code, "message": e.message, "path": e.path}}),
         },
-        Err(e) => json!({"error": {"code": "BAD_REQUEST", "message": e.to_string(), "path": ""}}),
+        Err(e) => json!({"error": {"code": request_error_code(&e), "message": e.to_string(), "path": ""}}),
     };
     serde_json::to_string(&v).unwrap()
+}
+
+/// Contract error code for a request that failed to deserialise: malformed JSON text is `BAD_JSON`; well-formed
+/// JSON that does not match the request schema is `BAD_REQUEST`.
+pub fn request_error_code(e: &serde_json::Error) -> &'static str {
+    match e.classify() {
+        serde_json::error::Category::Syntax | serde_json::error::Category::Eof | serde_json::error::Category::Io => "BAD_JSON",
+        serde_json::error::Category::Data => "BAD_REQUEST",
+    }
 }
