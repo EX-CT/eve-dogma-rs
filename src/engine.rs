@@ -1,5 +1,5 @@
 //! Data-driven dogma engine: builds the object graph for one request, registers modifiers, evaluates lazily.
-use crate::data::{Dataset, Domain, Func, TypeInfo};
+use crate::data::{Dataset, Domain, Func, Modifier, TypeInfo};
 use crate::request::{FitRequest, ModuleReq, Slot, State};
 use rustc_hash::FxHashMap;
 use std::cell::Cell;
@@ -360,34 +360,47 @@ fn skill_relevant(ds: &Dataset, s: u32, need: &rustc_hash::FxHashSet<u32>, group
     if need.contains(&s) {
         return true;
     }
-    let Some(t) = ds.types.get(&s) else { return false };
-    for (eid, _) in &t.effects {
-        if *eid == EFFECT_SKILL_EFFECT {
-            continue;
-        }
-        let Some(e) = ds.effects.get(eid) else { continue };
-        if e.mods.is_empty() {
-            return true; // hand-written / special effect
-        }
-        for m in &e.mods {
-            let hit = match m.func {
-                Func::Item => match prune {
-                    // self-modifiers only matter to the skill's own other effects; ship attributes that the ship
-                    // lacks and nothing else touches cannot affect a stat
-                    Some((ship, touched)) => match m.domain {
-                        Domain::Item => false,
-                        Domain::Ship => ship.attr(m.modified).is_some() || touched.contains(&m.modified),
-                        _ => true,
-                    },
-                    None => true,
-                },
-                Func::Location | Func::EffectStopper => true,
-                Func::LocationGroup => groups.contains(&m.extra) || ds.groups.get(&m.extra).map(|g| g.category == 16).unwrap_or(true),
-                Func::LocationRequiredSkill | Func::OwnerRequiredSkill => need.contains(&if m.extra == 0 { s } else { m.extra }),
-            };
-            if hit {
-                return true;
+    // skills: precomputed modifier list; any other type id given as a skill: walk its effects
+    let owned: Vec<Modifier>;
+    let (special, mods): (bool, &[Modifier]) = match ds.skill_mods(s) {
+        Some(x) => x,
+        None => {
+            let Some(t) = ds.types.get(&s) else { return false };
+            let mut special = false;
+            let mut v = Vec::new();
+            for (eid, _) in &t.effects {
+                if *eid == EFFECT_SKILL_EFFECT {
+                    continue;
+                }
+                let Some(e) = ds.effects.get(eid) else { continue };
+                special |= e.mods.is_empty();
+                v.extend_from_slice(&e.mods);
             }
+            owned = v;
+            (special, &owned)
+        }
+    };
+    if special {
+        return true; // hand-written / special effect
+    }
+    for m in mods {
+        let hit = match m.func {
+            Func::Item => match prune {
+                // self-modifiers only matter to the skill's own other effects; ship attributes that the ship
+                // lacks and nothing else touches cannot affect a stat
+                Some((ship, touched)) => match m.domain {
+                    Domain::Item => false,
+                    Domain::Ship => ship.attr(m.modified).is_some() || touched.contains(&m.modified),
+                    _ => true,
+                },
+                None => true,
+            },
+            Func::Location | Func::EffectStopper => true,
+            Func::LocationGroup => groups.contains(&m.extra) || ds.groups.get(&m.extra).map(|g| g.category == 16).unwrap_or(true),
+            Func::LocationRequiredSkill | Func::OwnerRequiredSkill => need.contains(&if m.extra == 0 { s } else { m.extra }),
+        };
+        if hit {
+            return true;
         }
     }
     false

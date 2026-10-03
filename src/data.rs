@@ -660,6 +660,9 @@ pub struct Dataset {
     names_zh_raw: RawBytes,
     #[serde(skip)]
     names_zh_idx: std::sync::OnceLock<Vec<(u32, u32, u32)>>,
+    /// per skill: (has an effect without modifiers, all modifiers of its effects except skillEffect), built on first use
+    #[serde(skip)]
+    skill_mods: std::sync::OnceLock<FxHashMap<u32, (bool, Box<[Modifier]>)>>,
     /// name -> id indexes, built on first use from the attribute / effect names (not stored in the binary cache)
     #[serde(skip)]
     attr_by_name: std::sync::OnceLock<NameIndex>,
@@ -995,6 +998,7 @@ impl Dataset {
             mutaplasmids,
             names_zh_raw,
             names_zh_idx: std::sync::OnceLock::new(),
+            skill_mods: std::sync::OnceLock::new(),
             attr_by_name: std::sync::OnceLock::new(),
             effect_by_name: std::sync::OnceLock::new(),
             type_by_name: std::sync::OnceLock::new(),
@@ -1024,6 +1028,31 @@ impl Dataset {
             };
             d
         })
+    }
+
+    /// modifiers a skill's effects can apply (effect 132 skillEffect excluded) and whether any effect is hand-written
+    /// (no modifiers); None for a type that is not a skill
+    pub fn skill_mods(&self, skill: u32) -> Option<(bool, &[Modifier])> {
+        let m = self.skill_mods.get_or_init(|| {
+            let mut m = FxHashMap::with_capacity_and_hasher(self.skills.len(), Default::default());
+            for &s in &self.skills {
+                let Some(t) = self.types.get(&s) else { continue };
+                let (mut special, mut mods) = (false, Vec::new());
+                for (eid, _) in &t.effects {
+                    if *eid == 132 {
+                        continue;
+                    }
+                    let Some(e) = self.effects.get(eid) else { continue };
+                    if e.mods.is_empty() {
+                        special = true;
+                    }
+                    mods.extend_from_slice(&e.mods);
+                }
+                m.insert(s, (special, mods.into_boxed_slice()));
+            }
+            m
+        });
+        m.get(&skill).map(|(sp, v)| (*sp, &v[..]))
     }
 
     /// attribute id by name (0 if unknown; for a duplicated name the lowest id)
