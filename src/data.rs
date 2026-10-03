@@ -177,6 +177,53 @@ impl<T> Dense<T> {
     }
 }
 
+/// name -> id without owning the names: 64-bit name hash -> id, the name checked against the owner on lookup; ids
+/// whose different name collides on the hash go to `extra` (scanned linearly)
+#[derive(Default)]
+struct NameIndex {
+    map: FxHashMap<u64, u32>,
+    extra: Vec<u32>,
+}
+
+impl NameIndex {
+    fn hash(s: &str) -> u64 {
+        use std::hash::Hasher;
+        let mut h = rustc_hash::FxHasher::default();
+        h.write(s.as_bytes());
+        h.write_usize(s.len());
+        h.finish()
+    }
+
+    /// `items` in ascending id order (the lowest id wins for a duplicated name); `names` looks a name up by id
+    fn build<'a>(items: impl Iterator<Item = (u32, &'a str)>, names: impl Fn(u32) -> Option<&'a str>) -> NameIndex {
+        let mut ix = NameIndex::default();
+        for (id, name) in items {
+            let h = NameIndex::hash(name);
+            match ix.map.get(&h) {
+                None => {
+                    ix.map.insert(h, id);
+                }
+                Some(&prev) if names(prev) == Some(name) => {}
+                Some(_) => {
+                    if !ix.extra.iter().any(|&x| names(x) == Some(name)) {
+                        ix.extra.push(id);
+                    }
+                }
+            }
+        }
+        ix
+    }
+
+    fn find<'a>(&self, name: &str, names: impl Fn(u32) -> Option<&'a str>) -> u32 {
+        if let Some(&id) = self.map.get(&NameIndex::hash(name)) {
+            if names(id) == Some(name) {
+                return id;
+            }
+        }
+        self.extra.iter().copied().find(|&id| names(id) == Some(name)).unwrap_or(0)
+    }
+}
+
 /// packed little-endian record of a TypeInfo: fixed scalars, optional ids (flag byte + value), then the name and
 /// the attribute / effect / required-skill lists each as a u32 count followed by their elements
 impl TypeInfo {
@@ -480,8 +527,11 @@ pub struct Dataset {
     names_zh_raw: RawBytes,
     #[serde(skip)]
     names_zh_idx: std::sync::OnceLock<Vec<(u32, u32, u32)>>,
-    attr_by_name: FxHashMap<String, u32>,
-    effect_by_name: FxHashMap<String, u32>,
+    /// name -> id indexes, built on first use from the attribute / effect names (not stored in the binary cache)
+    #[serde(skip)]
+    attr_by_name: std::sync::OnceLock<NameIndex>,
+    #[serde(skip)]
+    effect_by_name: std::sync::OnceLock<NameIndex>,
     /// lowercase name -> type id, built on first use (not stored in the binary cache: most calcs never need it).
     /// A published type wins over unpublished ones of the same name; otherwise the lowest id.
     #[serde(skip)]
@@ -676,10 +726,8 @@ impl Dataset {
             return Err(format!("unsupported dataset format {} v{}", raw.format, raw.format_version));
         }
         let mut attrs = Dense::default();
-        let mut attr_by_name = FxHashMap::default();
         for (k, a) in raw.attributes {
             let id: u32 = k.parse().unwrap_or(0);
-            attr_by_name.insert(a.name.clone(), id);
             attrs.insert(
                 id,
                 AttrInfo {
@@ -698,10 +746,8 @@ impl Dataset {
             );
         }
         let mut effects = Dense::default();
-        let mut effect_by_name = FxHashMap::default();
         for (k, e) in raw.effects {
             let id: u32 = k.parse().unwrap_or(0);
-            effect_by_name.insert(e.name.clone(), id);
             let mods = e
                 .mods
                 .iter()
@@ -816,8 +862,8 @@ impl Dataset {
             mutaplasmids,
             names_zh_raw,
             names_zh_idx: std::sync::OnceLock::new(),
-            attr_by_name,
-            effect_by_name,
+            attr_by_name: std::sync::OnceLock::new(),
+            effect_by_name: std::sync::OnceLock::new(),
             type_by_name: std::sync::OnceLock::new(),
             skills,
             wk: WellKnown::default(),
@@ -847,11 +893,15 @@ impl Dataset {
         })
     }
 
+    /// attribute id by name (0 if unknown; for a duplicated name the lowest id)
     pub fn attr_id(&self, name: &str) -> u32 {
-        *self.attr_by_name.get(name).unwrap_or(&0)
+        let names = |id: u32| self.attrs.get(&id).map(|a| a.name.as_str());
+        self.attr_by_name.get_or_init(|| NameIndex::build(self.attrs.iter().map(|(id, a)| (id, a.name.as_str())), names)).find(name, names)
     }
+    /// effect id by name (0 if unknown; for a duplicated name the lowest id)
     pub fn effect_id(&self, name: &str) -> u32 {
-        *self.effect_by_name.get(name).unwrap_or(&0)
+        let names = |id: u32| self.effects.get(&id).map(|e| e.name.as_str());
+        self.effect_by_name.get_or_init(|| NameIndex::build(self.effects.iter().map(|(id, e)| (id, e.name.as_str())), names)).find(name, names)
     }
     /// Chinese name of a type, if the dataset has one
     pub fn name_zh(&self, id: u32) -> Option<&str> {
