@@ -1079,7 +1079,10 @@ impl Dataset {
             }
             v
         });
-        idx.binary_search_by_key(&id, |x| x.0).ok().map(|k| &self.names_zh_str()[idx[k].1 as usize..idx[k].2 as usize])
+        // the blob was validated as UTF-8 once when the index was built: per lookup only the entry's bytes are checked
+        // (validating the whole blob per call made `search` quadratic, seconds per call)
+        let k = idx.binary_search_by_key(&id, |x| x.0).ok()?;
+        std::str::from_utf8(&self.names_zh_raw.0[idx[k].1 as usize..idx[k].2 as usize]).ok()
     }
 
     fn names_zh_str(&self) -> &str {
